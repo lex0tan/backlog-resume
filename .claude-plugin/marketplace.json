@@ -1,0 +1,11 @@
+{
+  "name": "backlog",
+  "owner": { "name": "backlog contributors" },
+  "plugins": [
+    {
+      "name": "backlog",
+      "source": "./",
+      "description": "Resume work from a Markdown backlog: verified status, one next step, and a side panel to pick items."
+    }
+  ]
+}
