@@ -21,7 +21,10 @@ jobs:
         run: |
           git config --global user.email ci@example.com
           git config --global user.name CI
-      - run: node --test
+      # Explicit files: plain `node --test` on Node 23+ also runs hooks/*.test.ts, which only `claude plugin test` can run.
+      # bash expands the glob on every OS (Node 20 does not expand globs itself).
+      - run: node --test test/*.test.mjs
+        shell: bash
 
   plugin:
     runs-on: ubuntu-latest
@@ -32,6 +35,4 @@ jobs:
           node-version: 22
       - run: npm i -g @anthropic-ai/claude-code
       - run: claude plugin validate .
-      - name: Plugin tests (skipped until hooks tests exist)
-        run: |
-          if ls hooks/*.test.ts hooks/*.test.tsx >/dev/null 2>&1; then claude plugin test .; else echo "no hooks tests yet"; fi
+      - run: claude plugin test .
