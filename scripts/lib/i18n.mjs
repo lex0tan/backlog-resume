@@ -44,7 +44,7 @@ const ID = '[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*'
 export function keywordRegexes(kw) {
   const links = `${esc(kw.dependsOn)}|${esc(kw.blocks)}`
   return {
-    next: new RegExp(`${esc(kw.next)}:\\s*\`?(${ID})\`?`),
+    next: new RegExp(`^[ \\t>*_-]*${esc(kw.next)}:(?:\\*\\*|__)?\\s*\`?(${ID})\`?(?![A-Za-z0-9-])`, 'm'),
     link: new RegExp(`^(?:${links}):`),
     linkSegment: new RegExp(`(${links}):((?:(?!(?:${links}):).)*)`, 'g'),
     doneWhen: new RegExp(`^${esc(kw.doneWhen)}:\\s*`),
