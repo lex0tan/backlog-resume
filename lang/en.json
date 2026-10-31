@@ -53,7 +53,7 @@
     "checkDeclaredDone": "{id} is checked off: verify the evidence and remove it",
     "checkDanglingLink": "{id} cites {ref}, which is no longer in the backlog (closed or nonexistent)",
     "checkNoDoneWhen": "{id} has no \"{doneWhen}\" criterion",
-    "checkAmbiguousLink": "{id} cites {ref}, which exists in several projects: {matches}",
+    "checkAmbiguousLink": "{id} cites {ref}, which exists in several projects: {matches}. Qualify it with project:ID.",
     "checkMissingIndex": "Project has no index file {file}: run /backlog init",
     "overviewMissing": "Overview file {file} does not exist.",
     "overviewNoMarkers": "Overview file {file} has no generated-block markers: adding them needs the user's confirmation.",
@@ -63,6 +63,10 @@
     "itemNotFound": "Item {id} not found.",
     "doneRemoved": "{id} removed",
     "addAdded": "Added {id}",
+    "initTitle": "Backlog",
+    "initStatus": "Status",
+    "initItems": "Items",
+    "splitWorkstreams": "Workstreams",
     "invalidInput": "Invalid {field}: {reason}"
   },
   "panel": {

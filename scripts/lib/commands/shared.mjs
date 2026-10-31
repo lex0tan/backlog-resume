@@ -1,6 +1,7 @@
 // Helpers shared by the read commands: items of the whole workspace with their graph, dates and ages.
 
 import { posix as ppath } from 'node:path'
+import { InvalidInputError } from '../errors.mjs'
 import { lineAges } from '../git.mjs'
 import { buildGraph } from '../graph.mjs'
 import { timing, waitingOnUser } from '../model.mjs'
@@ -80,4 +81,18 @@ export function readContext(ws, today) {
   }
 
   return { ws, today, items, graph, projects, find, describe, kwFor }
+}
+
+const same = (a, b) => a.toLowerCase() === b.toLowerCase()
+
+/** The project named by `name` (folder, name or alias, ignoring case); without a name, the only or the focused one. */
+export function pickProject(ws, name) {
+  if (!name) {
+    const only = ws.projects.length === 1 ? ws.projects[0] : ws.focus
+    if (!only) throw new InvalidInputError('project', 'required when the workspace has several projects')
+    return only
+  }
+  const hits = ws.projects.filter((p) => [p.name, p.rel, ...p.aliases].some((a) => same(a, name)))
+  if (hits.length !== 1) throw new InvalidInputError('project', hits.length ? `ambiguous: ${name}` : `unknown: ${name}`)
+  return hits[0]
 }

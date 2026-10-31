@@ -30,7 +30,7 @@ test('unknown language throws LanguageNotFoundError', () => {
 
 test('keywordRegexes captures the next ID with optional backticks', () => {
   const re = keywordRegexes(loadKeywords('it'))
-  assert.equal(re.next.exec('Prossima attività: `DM-PROD-006`')[1], 'DM-PROD-006')
+  assert.equal(re.next.exec('Prossima attività: `SHOP-API-006`')[1], 'SHOP-API-006')
   assert.equal(re.next.exec('Prossima attività: SHOP-001')[1], 'SHOP-001')
   assert.ok(re.subprojects.test('I sottoprogetti'))
   const segs = [...'Dipende da: A-001. Blocca: B-002.'.matchAll(re.linkSegment)].map((m) => m[1])

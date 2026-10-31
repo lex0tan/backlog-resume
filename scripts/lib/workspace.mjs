@@ -60,7 +60,8 @@ export function discover(root, config, kw) {
 
   const examine = (dir, entries) => {
     const ownPath = join(dir, CONFIG_FILE)
-    const own = dir !== root && isFile(ownPath) ? readConfig(ownPath) : null
+    // A folder with its own config is a project; the root counts only when it also has an index file.
+    const own = isFile(ownPath) && (dir !== root || isFile(join(dir, config.index))) ? readConfig(ownPath) : null
     const merged = effectiveConfig(config, own ?? {})
     const projectKw = own ? loadKeywords(merged.language, merged.keywords) : kw
     const indexPath = join(dir, merged.index)

@@ -173,3 +173,15 @@ test('fast check works with an empty PATH (no git): no stale-item, no git-only d
   assert.deepEqual(r.issues.filter((i) => i.level === 'error').map((i) => i.code), ['missing-file'], 'only the missing workstream file')
   assert.ok(r.files.every((f) => f.lastModified === null))
 })
+
+test('ambiguous-link message suggests qualifying with project:ID, and a qualified link resolves', (t) => {
+  const spec = {
+    'shop/TODO.md': list(item('DUP-001')),
+    'docs/TODO.md': list(item('DUP-001')),
+    'mobile/TODO.md': list(item('MOB-001', 'Depends on: `DUP-001`'), item('MOB-002', 'Depends on: `docs:DUP-001`')),
+  }
+  const r = check(ws(t, spec, { config: {} }), { fast: true })
+  assert.match(find(r, 'ambiguous-link', 'MOB-001').message, /Qualify it with project:ID/)
+  assert.equal(find(r, 'ambiguous-link', 'MOB-002'), undefined)
+  assert.equal(find(r, 'dangling-link', 'MOB-002'), undefined)
+})

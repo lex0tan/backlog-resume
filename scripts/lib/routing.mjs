@@ -243,10 +243,17 @@ export function route(ws, query) {
     const own = parseItems(text, kwOf(p))
     const ownIds = new Set(own.map((i) => i.id))
     const everything = ws.projects.flatMap((q2) => itemsOf(q2).map((it) => ({ ...it, p: q2 })))
-    const find = (id) => everything.find((x) => x.id === id && x.p === p) ?? everything.find((x) => x.id === id)
+    // A reference is `ID` or `project:ID`; the qualifier names a project folder.
+    const split = (ref) => { const m = ref.match(/^([^:\s]+):(.+)$/); return m ? { q: m[1], id: m[2] } : { q: null, id: ref } }
+    const find = (ref) => {
+      const { q, id } = split(ref)
+      if (q) return everything.find((x) => x.id === id && projectKey(x.p) === q) ?? everything.find((x) => x.id === id && named(ws, q).includes(x.p))
+      return everything.find((x) => x.id === id && x.p === p) ?? everything.find((x) => x.id === id)
+    }
+    const isOwn = (ref) => { const { q, id } = split(ref); return ownIds.has(id) && (!q || named(ws, q).includes(p)) }
     for (const it of own) {
       for (const id of [...it.deps, ...it.blocks]) {
-        if (ownIds.has(id)) continue
+        if (isOwn(id)) continue
         const other = find(id)
         linked.push({ from: it.id, id, file: other ? wsPath(other.p, other.file) : null, open: other ? other.open : null, text: other?.text ?? null })
       }
@@ -254,7 +261,7 @@ export function route(ws, query) {
     for (const other of everything) {
       if (other.p === p && identity(join(p.root, other.file)) === identity(join(p.root, leaf.file))) continue
       for (const id of [...other.blocks, ...other.deps]) {
-        if (ownIds.has(id)) linked.push({ from: other.id, id, file: wsPath(other.p, other.file), open: other.open, text: other.text })
+        if (isOwn(id)) linked.push({ from: other.id, id, file: wsPath(other.p, other.file), open: other.open, text: other.text })
       }
     }
   }

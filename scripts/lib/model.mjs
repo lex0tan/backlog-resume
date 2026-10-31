@@ -9,7 +9,8 @@ import { keywordRegexes } from './i18n.mjs'
 /** @typedef {{ from: string, days: number, state: 'later'|'due'|'overdue' }} When */
 
 const ITEM_LINE = /^- \[( |x|X)\] (?:\[([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d{3})\] )?(.*)$/
-const ID_IN_TEXT = /\b([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d{3})\b/g
+// A dependency reference: an item ID with an optional `project:` qualifier (project folder, as in routing).
+const LINK_REF = /(?:([A-Za-z0-9._/-]+):)?\b([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d{3})\b/g
 const TAG = /^(?:\*\*|`)*\[([\p{Ll}-]+)\](?!\()(?:\*\*|`)*\s*/u
 const NUMBERING = /^\d+[.)]\s+/
 
@@ -86,7 +87,7 @@ export function parseItems(text, kw) {
       } else if (re.link.test(meta)) {
         // "Depends on: X. Blocks: Y." on one line: each ID belongs to the label before it.
         for (const [, label, ids] of meta.matchAll(re.linkSegment)) {
-          (label === kw.blocks ? cur.blocks : cur.deps).push(...[...ids.matchAll(ID_IN_TEXT)].map((x) => x[1]))
+          (label === kw.blocks ? cur.blocks : cur.deps).push(...[...ids.matchAll(LINK_REF)].map((x) => (x[1] ? `${x[1]}:${x[2]}` : x[2])))
         }
       } else if (re.doneWhen.test(meta)) cur.doneWhen = meta.replace(re.doneWhen, '')
       else if (re.from.test(meta)) cur.from = meta.match(re.from)[1]

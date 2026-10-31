@@ -6,22 +6,11 @@ import { formatItem } from '../model.mjs'
 import { kwOf, projectItems } from '../routing.mjs'
 import { leaves } from '../tree.mjs'
 import { readText, writeText } from '../write.mjs'
-import { wsPath } from './shared.mjs'
+import { pickProject, wsPath } from './shared.mjs'
 
 const TYPE = /^[\p{Ll}-]+$/u
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const same = (a, b) => a.toLowerCase() === b.toLowerCase()
-
-function pickProject(ws, name) {
-  if (!name) {
-    const only = ws.projects.length === 1 ? ws.projects[0] : ws.focus
-    if (!only) throw new InvalidInputError('project', 'required when the workspace has several projects')
-    return only
-  }
-  const hits = ws.projects.filter((p) => [p.name, p.rel, ...p.aliases].some((a) => same(a, name)))
-  if (hits.length !== 1) throw new InvalidInputError('project', hits.length ? `ambiguous: ${name}` : `unknown: ${name}`)
-  return hits[0]
-}
 
 /**
  * @param {import('../workspace.mjs').Workspace} ws

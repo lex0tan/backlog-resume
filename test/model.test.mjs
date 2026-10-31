@@ -77,7 +77,7 @@ test('parseIndex ignores prose after Next', () => {
   assert.equal(parseIndex('Next: Review the plan', en).next, null)
   assert.equal(parseIndex('Some Next: SHOP-API text', en).next, null)
   assert.equal(parseIndex('Next: `SHOP-API`', en).next, 'SHOP-API')
-  assert.equal(parseIndex('Prossima attività: `DM-PROD-006`', it).next, 'DM-PROD-006')
+  assert.equal(parseIndex('Prossima attività: `SHOP-API-006`', it).next, 'SHOP-API-006')
 })
 test('parseItems recognises the type tag only at the start of the body', () => {
   const [a, b, c] = parseItems('- [ ] [A-001] See [docs](http://x) now\n- [ ] [A-002] `[code]` Fix\n- [ ] [A-003] **[decisione]** X', en)
@@ -85,4 +85,21 @@ test('parseItems recognises the type tag only at the start of the body', () => {
   assert.equal(b.type, 'code'); assert.equal(b.text, 'Fix')
   assert.equal(c.type, 'decisione'); assert.equal(c.text, 'X')
   assert.equal(parseItems('- [ ] [A-004] [docs](http://x) first', en)[0].type, 'other')
+})
+
+test('parseItems keeps a project qualifier on Depends on / Blocks and formatItem round-trips it', () => {
+  const text = [
+    '- [ ] [SHOP-001] `[code]` Needs docs',
+    '  Depends on: `docs:DOC-001`, `SHOP-002`. Blocks: `mobile/app:APP-003`.',
+  ].join('\n')
+  const [x] = parseItems(text, en)
+  assert.deepEqual(x.deps, ['docs:DOC-001', 'SHOP-002'])
+  assert.deepEqual(x.blocks, ['mobile/app:APP-003'])
+  const lines = formatItem({ ...x, id: x.id, type: x.type }, en)
+  assert.deepEqual(lines, [
+    '- [ ] [SHOP-001] `[code]` Needs docs',
+    '  Depends on: `docs:DOC-001`, `SHOP-002`',
+    '  Blocks: `mobile/app:APP-003`',
+  ])
+  assert.deepEqual(parseItems(lines.join('\n'), en)[0].deps, x.deps)
 })
