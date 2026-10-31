@@ -17,10 +17,10 @@ const ID_TOKEN = /(?:([A-Za-z0-9._-]+):)?\b([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*)\b/g
 export const projectKey = (p) => (p.rel === '.' ? p.name : p.rel)
 
 const wsPath = (p, file) => ppath.join(p.rel, posix(file))
-const kwOf = (p) => loadKeywords(p.config.language, p.config.keywords)
+export const kwOf = (p) => loadKeywords(p.config.language, p.config.keywords)
 const isFile = (path) => existsSync(path) && statSync(path).isFile()
 
-function projectItems(p) {
+export function projectItems(p) {
   if (p.indexMissing) return []
   return allItems(p.root, p.tree, kwOf(p)).map((it) => ({ ...it, project: p.rel }))
 }
