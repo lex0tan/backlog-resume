@@ -1,10 +1,11 @@
 // Workspace discovery: backlog projects below a root, plus files that could be adopted into the model format.
 
-import { readdirSync, readFileSync, realpathSync, existsSync, statSync } from 'node:fs'
+import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs'
 import { basename, join, relative, resolve, isAbsolute } from 'node:path'
 import { CONFIG_FILE, effectiveConfig, findWorkspace, readConfig } from './config.mjs'
 import { loadKeywords } from './i18n.mjs'
 import { isModelFile } from './model.mjs'
+import { identity } from './paths.mjs'
 import { allItems, emptyTree, loadTree, projectPrefix } from './tree.mjs'
 import { posix, splitLines } from './text.mjs'
 
@@ -14,13 +15,7 @@ import { posix, splitLines } from './text.mjs'
 
 export const DEFAULT_EXCLUDES = ['node_modules', '.git', '.hg', '.svn', 'dist', 'build', 'out', '.next', '.nuxt', '.svelte-kit', 'target', 'vendor', 'coverage', '.venv', 'venv', '__pycache__', '.cache', '.turbo', '.idea', '.vscode', '.backlog']
 
-const CASE_INSENSITIVE = process.platform === 'win32' || process.platform === 'darwin'
 const isFile = (path) => existsSync(path) && statSync(path).isFile()
-// File identity: real path of an existing file, lower-cased where the file system ignores case.
-const identity = (path) => {
-  const real = existsSync(path) ? realpathSync.native(path) : resolve(path)
-  return CASE_INSENSITIVE ? real.toLowerCase() : real
-}
 const relPosix = (root, path) => posix(relative(root, path)) || '.'
 const CHECKLIST = /^\s*[-*] \[[ xX]\]/
 const OPEN_BOX = /^\s*[-*] \[ \]/

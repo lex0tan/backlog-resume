@@ -1,9 +1,10 @@
 // Project tree: a flat TODO.md, an index of workstreams (nested indexes allowed), or an index with subprojects.
 
-import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { IndexNotFoundError } from './errors.mjs'
 import { parseIndex, parseItems } from './model.mjs'
+import { identity } from './paths.mjs'
 import { posix } from './text.mjs'
 
 /** @typedef {{ id: string, name: string, file: string, status: string, block: string, aliases: string[],
@@ -11,9 +12,6 @@ import { posix } from './text.mjs'
 /** @typedef {{ top: Node, nodes: Node[] }} Tree */
 
 const isFile = (path) => existsSync(path) && statSync(path).isFile()
-// File identity for the cycle guard: the real path of an existing file (case and links resolved by the OS),
-// else the normalised absolute path.
-const identity = (path) => (existsSync(path) ? realpathSync.native(path) : resolve(path))
 const ID_PREFIX = /-\d{3}$/
 
 /**
