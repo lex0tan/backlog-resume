@@ -54,3 +54,6 @@ export function keywordRegexes(kw) {
     subprojects: new RegExp(esc(kw.subprojects), 'i'),
   }
 }
+
+/** Message `key` from the language file with `{name}` placeholders replaced (missing values become empty). */
+export const message = (kw, key, vars = {}) => (kw.messages[key] ?? key).replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ''))
