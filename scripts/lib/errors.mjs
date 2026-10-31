@@ -60,6 +60,12 @@ export class InvalidInputError extends BacklogError {
   }
 }
 
+export class InvalidJsonError extends BacklogError {
+  constructor(file, reason) {
+    super(`Invalid JSON in ${file}: ${reason}`, { file, reason })
+  }
+}
+
 export class UsageError extends BacklogError {
   constructor(message) {
     super(message)
