@@ -63,6 +63,13 @@ export function loadTree(projectRoot, kw, config) {
   return { top, nodes }
 }
 
+/** Tree of a project whose index file does not exist: no nodes, top marked as missing. */
+export function emptyTree(projectRoot, indexFile) {
+  const name = basename(projectRoot)
+  const top = { id: name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4), name, file: indexFile, status: '', block: '', aliases: [], subproject: false, exists: false, container: false, next: null, parent: null, children: [] }
+  return { top, nodes: [] }
+}
+
 /** Detail nodes: those without children. A flat project is one workstream: the top node. */
 export function leaves(tree) {
   return tree.top.container ? tree.nodes.filter((n) => !n.container) : [tree.top]

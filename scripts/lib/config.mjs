@@ -25,7 +25,7 @@ export const DEFAULTS = {
   index: 'TODO.md',
 }
 
-function readConfig(path) {
+export function readConfig(path) {
   let data
   try {
     data = JSON.parse(readFileSync(path, 'utf8').replace(/^\uFEFF/, ''))
