@@ -63,7 +63,7 @@ When the request ends with a line naming items other sessions are working on rig
    - `when` (from the `From: YYYY-MM-DD` sub-line): `later` = not ripe, do not propose it; `due` = the date has come, takes priority; `overdue` = late by `days`, flag at the top of the report.
    - `cycle` not empty: the item is in a dependency loop. Do not propose it as next step. Report the chain and ask which dependency to remove.
    - `waiting` true: the item waits on the user (a decision, or only user parts left). List it under "Waiting on you" with the exact steps from `steps`; never propose it as work for yourself.
-   - `stale` (open longer than `staleDays`): list it under "Stale items" and offer three actions: do it, split or rewrite it, or close it.
+   - `stale` (open longer than `staleDays`): list it under "Stale items" and offer these actions: do it, split or rewrite it, keep it as it is, postpone it with a `From: YYYY-MM-DD` sub-line, or remove it (only after the user confirms).
 4. **Verify.** Compare every item under review with reality: diff, commits, cited files, code. Every extra file you open needs a reason, written in the report. Classify:
    - **verified done**: `doneWhen` met and demonstrated (commit, file, test);
    - **in progress**: work exists, criterion not met;
@@ -174,7 +174,7 @@ Short. Omit empty sections, except "Next step".
 <ID — the exact step you must take>
 
 ## Stale items
-<ID — days open — do it / split or rewrite / close>
+<ID — days open — do it / split or rewrite / keep / postpone with From: / remove>
 
 ## Dependency cycles
 <A > B > C > A — which dependency to remove>

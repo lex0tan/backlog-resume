@@ -13,7 +13,7 @@ export function summary(ws, today = todayIso()) {
   const ctx = readContext(ws, today)
   const projects = ws.projects.map((p) => {
     const open = ctx.items.filter((x) => x.project === p.rel && x.open)
-    const described = open.map((x) => ({ item: x, ...ctx.describe(x) }))
+    const described = open.map((x) => ({ item: x, ...ctx.describe(x, { stale: false }) }))
     const withState = (state) => described.filter((d) => d.item.id && d.when?.state === state).sort(byWhen).map((d) => d.item.id)
     const chains = new Set(described.map((d) => d.cycle).filter(Boolean).map((chain) => chain.join('>')))
     const state = p.indexMissing ? null : gitState(p, p.tree, ws.root)

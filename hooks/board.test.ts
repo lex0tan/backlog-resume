@@ -153,9 +153,9 @@ test('duration, bar, statusText and finishedText', () => {
   expect([duration(25 * 60_000), duration(130 * 60_000), duration(120 * 60_000), duration(50 * 3600_000)]).toEqual(['25 min', '2 h 10 min', '2 h', '2 d'])
   expect(duration(50 * 3600_000, { unitDay: 'g' })).toBe('2 g')
   expect(bar({ done: 1, total: 4 }, 8)).toEqual(['██', '░░░░░░'])
-  const a = { id: 'A-1', text: 'x', file: 'f', startedAt: 0 }
+  const a = { id: 'A-1', startedAt: 0 }
   expect(statusText(a, { done: 1, total: 2 }, 40 * 60_000)).toBe('▶ A-1 · ████░░░░ 1/2 · 40 min')
-  expect(statusText({ id: 'A-1', text: 'x', file: 'f' }, null, 0)).toBe('▶ A-1')
+  expect(statusText({ id: 'A-1' }, null, 0)).toBe('▶ A-1')
   expect(finishedText({ id: 'A-1', minutes: 7, pending: 2 }, S)).toBe('✓ A-1 done · 7 min · ⚠ 2 uncommitted')
   expect(finishedText({ id: 'A-1', minutes: 7, pending: 2 }, MARKED)).toBe('it:✓ A-1 done · 7 it:min · it:⚠ 2 uncommitted')
   expect(t(S, 'noSuchKey')).toBe('noSuchKey')

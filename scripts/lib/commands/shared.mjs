@@ -58,14 +58,17 @@ export function readContext(ws, today) {
     return hits.length === 1 ? hits[0] : null
   }
 
-  /** Fields every read command derives from an item: when, graph links, cycle, waiting and staleness. */
-  const describe = (it) => {
+  /**
+   * Fields every read command derives from an item: when, graph links, cycle, waiting and staleness.
+   * `stale: false` skips the staleness (a `git blame` per file) for callers that do not output it.
+   */
+  const describe = (it, { stale: withStale = true } = {}) => {
     const project = projects.get(it.project)
     const key = keyOf(it)
     const when = timing(it.from, today, project.config.overdueDays)
     const { waiting, steps } = waitingOnUser(it, kwFor(project))
     let stale = null
-    if (it.open && when?.state !== 'later') {
+    if (withStale && it.open && when?.state !== 'later') {
       const days = ageOf(project, it)
       if (days > project.config.staleDays) stale = { days }
     }

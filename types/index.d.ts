@@ -81,7 +81,8 @@ export type Active = {
 // An item closed by a session, kept in the store (last 50) for the "done today" count.
 export type Closed = { id: string; at: number; minutes: number | null }
 // The last closed item, shown as a done line in the status line until dismissed.
-export type Finished = { id: string; minutes: number | null; pending: number; language?: string }
+// `at` (ms) lets old entries be pruned from the store.
+export type Finished = { id: string; minutes: number | null; pending: number; language?: string; at?: number }
 // `files` output: every backlog file of a project (absolute POSIX), and which of them are indexes.
 export type ProjectFiles = { rel: string; root: string; files: string[]; indexes: string[] }
 export type FileSet = { root: string; language: string; projects: ProjectFiles[] }

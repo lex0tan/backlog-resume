@@ -18,6 +18,8 @@ const FINISHED = 'finished:'
 const CLOSED = 'closed'
 const CLOSED_KEPT = 50
 export const HEARTBEAT_MS = 60_000
+/** Entries of other sessions older than this are deleted from the store: nobody can resume or propose them any more. */
+export const STORE_KEEP_MS = 30 * 24 * 3600_000
 
 export const active = atom({ plugin: 'backlog', key: 'active' } as const, null)
 export const finished = atom({ plugin: 'backlog', key: 'finished' } as const, null)
@@ -179,13 +181,32 @@ export async function refreshActive($: EngineInterface, now = Date.now()) {
   const git = (await runScript($, ['git'])) as GitOut
   const dirty = git.status === 'error' || git.status === 'no-git' ? [] : (git.projects ?? []).flatMap(p => (p.dirty ?? []).map(d => d.path))
   const pending = newlyDirty(a.dirtyAtStart, dirty).length
-  const value: Finished = { id: a.id, minutes, pending, language: a.language }
+  const value: Finished = { id: a.id, minutes, pending, language: a.language, at: now }
   $.ui.toast(finishedText(value, strings), { timeoutMs: pending ? 10_000 : 5000 })
   await setFinished($, value, strings)
 }
 
+/**
+ * Deletes what other sessions left in the store and nobody will use again: `finished:` lines older than `STORE_KEEP_MS`
+ * (or without a date) and `active:` entries silent for that long, which no workspace proposes any more.
+ */
+export async function prune($: EngineInterface, now = Date.now()) {
+  const me = await $.session.id()
+  for (const key of await $.store.keys()) {
+    if (key === `${ACTIVE}${me}` || key === `${FINISHED}${me}`) continue
+    const value = (await $.store.get(key)) as { at?: number; heartbeatAt?: number } | undefined
+    const stamp = key.startsWith(FINISHED) ? value?.at : key.startsWith(ACTIVE) ? value?.heartbeatAt : null
+    if (stamp === null) continue
+    if (typeof stamp !== 'number' || now - stamp > STORE_KEEP_MS) {
+      $.ui.log(`backlog: pruned stale store entry ${key}`)
+      await $.store.delete(key)
+    }
+  }
+}
+
 /** At the start of a session: brings back this session's item (or its last "done" line) and proposes the orphans of this workspace. */
 export async function restore($: EngineInterface, now = Date.now()) {
+  await prune($, now)
   const own = await mineOf($)
   if (own) {
     await update($, active, () => own)

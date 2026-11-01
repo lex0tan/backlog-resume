@@ -33,6 +33,13 @@ export function readConfig(path) {
     throw new ConfigError(path, err.message)
   }
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new ConfigError(path, 'expected a JSON object')
+  for (const [key, fallback] of Object.entries(DEFAULTS)) {
+    const value = data[key]
+    if (value === undefined || value === null) continue
+    const want = Array.isArray(fallback) ? 'array' : fallback === null ? 'string' : typeof fallback
+    const got = Array.isArray(value) ? 'array' : typeof value
+    if (got !== want) throw new ConfigError(path, `"${key}" must be ${want === 'array' ? 'an array' : `a ${want}`}, got ${got}`)
+  }
   return data
 }
 

@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import type { TestBody } from 'claude-code/testing'
 
-import { CWD, FILE, PANE, TURN, ago, entry, setup } from './fixtures/world'
+import { CWD, FILE, MIN, PANE, TURN, ago, entry, setup } from './fixtures/world'
 
 type $T = Parameters<TestBody>[0]
 
@@ -117,4 +117,19 @@ test('an item waiting on the user leaves the lists of work and shows its step in
   expect((await ui.find({ type: 'Button', text: /API-003.*pick a plan/ }))?.text).toBeDefined()
   expect(await ui.find({ type: 'Button', text: /API-002/ })).toBeUndefined()
   await ui.unmount()
+})
+
+test('at the start of a session, entries of other sessions older than a month are pruned and the rest is kept', async ($, on) => {
+  const day = 24 * 60 * MIN
+  const { store } = setup(on, {
+    'active:A': entry('A', { heartbeatAt: ago(60) }),
+    'active:old': entry('old', { heartbeatAt: ago(40 * 24 * 60) }),
+    'active:recent': entry('recent', { heartbeatAt: ago(2 * 24 * 60) }),
+    'finished:old': { id: 'X-1', minutes: 3, pending: 0, at: Date.now() - 40 * day },
+    'finished:recent': { id: 'X-2', minutes: 3, pending: 0, at: Date.now() - day },
+    'finished:undated': { id: 'X-3', minutes: 3, pending: 0 },
+    closed: [],
+  })
+  await $.session.start({ cwd: CWD, surface: 'terminal', isInteractive: true })
+  expect([...store.keys()].sort()).toEqual(['active:A', 'active:recent', 'closed', 'finished:recent'])
 })

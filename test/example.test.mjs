@@ -1,5 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { cpSync, mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { check } from '../scripts/lib/commands/check.mjs'
 import { list } from '../scripts/lib/commands/list.mjs'
@@ -7,7 +10,9 @@ import { overview } from '../scripts/lib/commands/overview.mjs'
 import { summary } from '../scripts/lib/commands/summary.mjs'
 import { loadWorkspace } from '../scripts/lib/workspace.mjs'
 
-const demo = fileURLToPath(new URL('../examples/demo/', import.meta.url))
+// A copy outside the repository: inside a folder tree that has its own `.backlog.json` (such as a parent workspace) the outermost config would become the root.
+const demo = join(mkdtempSync(join(tmpdir(), 'backlog-demo-')), 'demo')
+cpSync(fileURLToPath(new URL('../examples/demo/', import.meta.url)), demo, { recursive: true })
 const ws = () => loadWorkspace(demo)
 const itemsOf = (listed) => listed.projects.flatMap((p) => p.workstreams.flatMap((w) => w.items))
 

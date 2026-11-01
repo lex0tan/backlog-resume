@@ -56,3 +56,13 @@ test('DEFAULTS', () => {
     overview: null, staleDays: 30, overdueDays: 3, lockMinutes: 5, typeOrder: [], index: 'TODO.md',
   })
 })
+
+test('a config value of the wrong type is a ConfigError naming the key', () => {
+  const w = tmp()
+  writeFileSync(join(w, '.backlog.json'), '{"staleDays":"30"}')
+  assert.throws(() => findWorkspace(w), (err) => err instanceof ConfigError && /"staleDays" must be a number, got string/.test(err.message))
+  writeFileSync(join(w, '.backlog.json'), '{"exclude":"node_modules","prefix":null}')
+  assert.throws(() => findWorkspace(w), (err) => err instanceof ConfigError && /"exclude" must be an array/.test(err.message))
+  writeFileSync(join(w, '.backlog.json'), '{"staleDays":10,"prefix":"X","workspace":true}')
+  assert.doesNotThrow(() => findWorkspace(w))
+})

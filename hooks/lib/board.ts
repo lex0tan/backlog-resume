@@ -210,7 +210,7 @@ export function bar(parts: Parts, width: number): [string, string] {
   return ['█'.repeat(filled), '░'.repeat(width - filled)]
 }
 
-export function statusText(a: Active, parts: Parts | null, now: number, strings: Strings = {}): string {
+export function statusText(a: Pick<Active, 'id'> & Partial<Pick<Active, 'startedAt'>>, parts: Parts | null, now: number, strings: Strings = {}): string {
   return [`▶ ${a.id}`, parts?.total ? `${bar(parts, 8).join('')} ${parts.done}/${parts.total}` : '', a.startedAt !== undefined ? duration(now - a.startedAt, strings) : '']
     .filter(Boolean).join(' · ')
 }
