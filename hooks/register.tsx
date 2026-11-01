@@ -68,8 +68,8 @@ export const register: Register = on => {
     const before = own ? await headOf($, own) : null
     const result = await next(e)
     if (RUNS_SCRIPT.test(command)) await forgetFiles($)
-    const text = own && result.result !== undefined ? await commitWarning($, own, before) : null
-    return text ? { ...result, context: [...(result.context ?? []), text] } : result
+    const text = own && result.deny === undefined && result.result !== undefined ? await commitWarning($, own, before) : null
+    return text && result.deny === undefined ? { ...result, context: [...(result.context ?? []), text] } : result
   }).catch(($, e, next) => next(e))
 
   on('command.run', { command: 'backlog' }, async ($, e) => {

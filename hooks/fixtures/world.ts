@@ -3,6 +3,7 @@
 
 import { mock } from 'claude-code/testing'
 import type { TestBody } from 'claude-code/testing'
+import type { UiPane } from 'claude-code'
 
 import { EN } from './panel'
 
@@ -64,7 +65,7 @@ export function setup(on: OnT, entries: Record<string, unknown> = {}, { listed =
   const who = { id: 'A' }
   const store = new Map<string, unknown>(Object.entries(entries))
   const seen = {
-    logs: [] as string[], prompts: [] as string[], toasts: [] as string[], statuses: [] as (string | undefined)[], panes: [] as { id: string }[],
+    logs: [] as string[], prompts: [] as string[], toasts: [] as string[], statuses: [] as (string | undefined)[], panes: [] as UiPane[],
     file: '- [ ] [API-002] `[code]` text API-002\n', fileGone: false,
   }
   on('store.get', (_, e) => ({ value: store.get(e.key) }))
@@ -88,7 +89,7 @@ export function setup(on: OnT, entries: Record<string, unknown> = {}, { listed =
     return { value: { exitCode: 0, stderr: '', isStdoutTruncated: false, isStderrTruncated: false, stdout: JSON.stringify(out) } }
   })
   on('ui.panes', () => ({ value: seen.panes }))
-  on('ui.open', (_, e) => { seen.panes.push({ id: e.id }); return { value: { isPlaced: true as const } } })
+  on('ui.open', (_, e) => { seen.panes.push({ id: e.id, title: e.title ?? e.id, isShown: true, isFocused: true, isPlaced: true }); return { value: { isPlaced: true as const } } })
   on('ui.close', () => ({ value: undefined }))
   on('ui.toast', (_, e) => { seen.toasts.push(e.text); return { value: undefined } })
   on('ui.log', (_, e) => { seen.logs.push(e.text); return { value: undefined } })

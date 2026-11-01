@@ -1,5 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { TestBody } from 'claude-code/testing'
+import type { UiPane } from 'claude-code'
 
 import { EN, MARKED } from './fixtures/panel'
 
@@ -34,7 +35,7 @@ const PANE = {
 } as const
 
 function stubs(on: OnT, language = 'en') {
-  const seen = { prompts: [] as string[], opened: [] as string[], runs: [] as string[][], toasts: [] as string[], panes: [] as { id: string }[] }
+  const seen = { prompts: [] as string[], opened: [] as string[], runs: [] as string[][], toasts: [] as string[], panes: [] as UiPane[] }
   mock.store(on)
   on('session.id', () => ({ value: 'S1' }))
   on('ui.status', () => ({ value: undefined }))
@@ -52,7 +53,7 @@ function stubs(on: OnT, language = 'en') {
     return { value: { exitCode: 0, stderr: '', isStdoutTruncated: false, isStderrTruncated: false, stdout: JSON.stringify(out) } }
   })
   on('ui.panes', () => ({ value: seen.panes }))
-  on('ui.open', (_, e) => { seen.opened.push(e.id); seen.panes.push({ id: e.id }); return { value: { isPlaced: true as const } } })
+  on('ui.open', (_, e) => { seen.opened.push(e.id); seen.panes.push({ id: e.id, title: e.title ?? e.id, isShown: true, isFocused: true, isPlaced: true }); return { value: { isPlaced: true as const } } })
   on('ui.close', () => ({ value: undefined }))
   on('ui.toast', (_, e) => { seen.toasts.push(e.text); return { value: undefined } })
   on('prompt.submit', (_, e) => { seen.prompts.push(e.text); return { text: e.text } })
