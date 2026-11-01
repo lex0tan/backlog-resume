@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { add } from '../scripts/lib/commands/add.mjs'
 import { done } from '../scripts/lib/commands/done.mjs'
@@ -119,4 +119,51 @@ test('done: same ID in two projects touches only the qualified one; bare ID is a
   done(ws, 'shop:API-001')
   assert.ok(!read(root, 'shop/TODO.md').includes('API-001'))
   assert.ok(read(root, 'docs/TODO.md').includes('API-001'))
+})
+
+test('done with archive: the closed item moves to done/YYYY-MM.md with its sub-lines and the date', (t) => {
+  const { root, ws } = load(t, flat(), { config: { archive: 'done' } })
+  const r = done(ws, 'SHOP-002')
+  const month = new Date().toISOString().slice(0, 7)
+  assert.equal(r.archive, `done/${month}.md`)
+  const archived = read(root, `done/${month}.md`)
+  assert.match(archived, /^- \[x\] \[SHOP-002\] `\[code\]` Product list\n  Done when: the list renders\n  Closed: \d{4}-\d{2}-\d{2}$/m)
+  assert.ok(!read(root, 'TODO.md').includes('[SHOP-002]'))
+})
+
+test('done with archive: a second item of the month is appended, one header only', (t) => {
+  const { root, ws } = load(t, flat(), { config: { archive: 'done' } })
+  done(ws, 'SHOP-002')
+  done(loadWorkspace(root), 'SHOP-004')
+  const archived = read(root, `done/${new Date().toISOString().slice(0, 7)}.md`)
+  assert.equal(archived.match(/^# Closed /gm).length, 1)
+  assert.ok(archived.includes('[SHOP-002]') && archived.includes('[SHOP-004]'))
+})
+
+test('done with archive: the Italian keyword and the file line endings are kept', (t) => {
+  const { root, ws } = load(t, { 'TODO.md': crlf(flat()['TODO.md']) }, { config: { archive: 'done', language: 'it' } })
+  done(ws, 'SHOP-002')
+  const archived = read(root, `done/${new Date().toISOString().slice(0, 7)}.md`)
+  assert.match(archived, /Chiuso: \d{4}-/)
+  assert.ok(!bareLf(archived), 'CRLF like the file it came from')
+})
+
+test('done with archive: an archived ID is never given out again by add', (t) => {
+  const { root, ws } = load(t, flat(), { config: { archive: 'done' } })
+  done(ws, 'SHOP-004')
+  const r = add(loadWorkspace(root), { type: 'code', text: 'Next one' })
+  assert.equal(r.id, 'SHOP-005')
+})
+
+test('done without archive: nothing is written besides the backlog', (t) => {
+  const { root, ws } = load(t, flat())
+  const r = done(ws, 'SHOP-002')
+  assert.equal(r.archive, undefined)
+  assert.ok(!existsSync(join(root, 'done')))
+})
+
+test('done with archive outside the project is refused and the item stays', (t) => {
+  const { root, ws } = load(t, flat(), { config: { archive: '../elsewhere' } })
+  assert.throws(() => done(ws, 'SHOP-002'), InvalidInputError)
+  assert.ok(read(root, 'TODO.md').includes('[SHOP-002]'))
 })

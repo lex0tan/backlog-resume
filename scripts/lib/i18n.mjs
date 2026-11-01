@@ -8,7 +8,7 @@ const LANG_DIR = fileURLToPath(new URL('../../lang/', import.meta.url))
 
 /** @typedef {{ start: string, end: string }} Marker */
 /** @typedef {{ language: string, next: string, dependsOn: string, blocks: string, doneWhen: string, from: string,
- *   was: string, user: string, subprojects: string,
+ *   was: string, closed: string, user: string, subprojects: string,
  *   columns: { id: string, file: string, alias: string, name: string, status: string, block: string },
  *   types: { blocked: string, decision: string, other: string }, markers: Marker[],
  *   messages: Record<string, string>, panel: Record<string, string> }} Keywords */

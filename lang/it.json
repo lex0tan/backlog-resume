@@ -7,6 +7,7 @@
     "doneWhen": "Fatto quando",
     "from": "Dal",
     "was": "Prima",
+    "closed": "Chiuso",
     "user": "Utente",
     "subprojects": "Sottoprogett",
     "columns": { "id": "ID", "file": "File", "alias": "Alias", "name": "Nome", "status": "Stato", "block": "Blocco" },

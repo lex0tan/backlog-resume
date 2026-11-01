@@ -18,6 +18,7 @@ export const DEFAULTS = {
   aliases: [],
   prefix: null,
   overview: null,
+  archive: null,
   staleDays: 30,
   overdueDays: 3,
   lockMinutes: 5,

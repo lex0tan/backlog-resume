@@ -195,6 +195,7 @@ Everything has a default. Put overrides in a `.backlog.json` at the workspace ro
   "aliases": [],
   "prefix": null,
   "overview": null,
+  "archive": null,
   "staleDays": 30,
   "overdueDays": 3,
   "lockMinutes": 5,
@@ -212,6 +213,7 @@ Everything has a default. Put overrides in a `.backlog.json` at the workspace ro
 | `projects`, `aliases` | Register folders the scan misses; extra names for routing |
 | `prefix` | ID prefix for new items |
 | `overview` | A file whose block between `<!-- backlog:start -->` and `<!-- backlog:end -->` is generated |
+| `archive` | A folder, relative to the project, where `done` keeps each closed item in a file per month (`done/2026-11.md`) instead of only deleting it. Off by default |
 | `staleDays` | An item untouched this long is flagged stale |
 | `overdueDays` | A `From:` date this far in the past makes the item overdue |
 | `lockMinutes` | How long a silent session keeps its item before it counts as orphaned |

@@ -1,13 +1,14 @@
 // `done`: removes a finished item (line and sub-lines) and moves the "Next" pointer that named it.
 
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { ItemNotFoundError } from '../errors.mjs'
 import { buildGraph } from '../graph.mjs'
 import { keywordRegexes } from '../i18n.mjs'
 import { kwOf, projectItems, resolveId } from '../routing.mjs'
 import { parseItems } from '../model.mjs'
 import { editText, UNCHANGED } from '../write.mjs'
-import { keyOf, wsPath } from './shared.mjs'
+import { archiveItem } from '../archive.mjs'
+import { keyOf, todayIso, wsPath } from './shared.mjs'
 
 const NEXT_NONE = '—'
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -39,7 +40,7 @@ function pointNext(path, kw, id, next) {
 /**
  * @param {import('../workspace.mjs').Workspace} ws
  * @param {string} ref `ID` or `project:ID`
- * @returns {{ status: 'done', id: string, project: string, file: string, next: string|null, indexes: string[] }}
+ * @returns {{ status: 'done', id: string, project: string, file: string, next: string|null, indexes: string[], archive?: string }}
  * @throws {AmbiguousIdError|ItemNotFoundError}
  */
 export function done(ws, ref) {
@@ -47,13 +48,16 @@ export function done(ws, ref) {
   if (!item) throw new ItemNotFoundError(ref)
   const kw = kwOf(project)
   const path = join(project.root, item.file)
+  let archived = null
   // The workspace was parsed before this call: find the item again in the file as it is now, so a concurrent edit never shifts the lines removed.
   editText(path, (state) => {
     const now = parseItems(state.lines.join('\n'), kw).find((x) => x.id === item.id)
     if (!now) throw new ItemNotFoundError(ref)
     let end = now.line + 1
     while (end < state.lines.length && /^\s+\S/.test(state.lines[end])) end++
-    state.lines.splice(now.line, end - now.line)
+    const removed = state.lines.splice(now.line, end - now.line)
+    // The archive is written before the item leaves its file: a failure keeps the item rather than losing it.
+    archived = archiveItem(project, kw, removed, todayIso(), state.eol)
   })
 
   const next = firstUnblocked(ws, project, item.file)
@@ -62,5 +66,5 @@ export function done(ws, ref) {
     if (node.next !== item.id || indexes.includes(wsPath(project, node.file))) continue
     if (pointNext(join(project.root, node.file), kw, item.id, next)) indexes.push(wsPath(project, node.file))
   }
-  return { status: 'done', id: item.id, project: project.rel, file: wsPath(project, item.file), next, indexes }
+  return { status: 'done', id: item.id, project: project.rel, file: wsPath(project, item.file), next, indexes, ...(archived && { archive: wsPath(project, relative(project.root, archived)) }) }
 }

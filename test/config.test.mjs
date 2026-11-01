@@ -53,7 +53,7 @@ test('effectiveConfig: project wins, keywords merge per key', () => {
 test('DEFAULTS', () => {
   assert.deepEqual(DEFAULTS, {
     language: 'en', keywords: {}, exclude: [], maxDepth: 4, projects: [], aliases: [], prefix: null,
-    overview: null, staleDays: 30, overdueDays: 3, lockMinutes: 5, typeOrder: [], index: 'TODO.md',
+    overview: null, archive: null, staleDays: 30, overdueDays: 3, lockMinutes: 5, typeOrder: [], index: 'TODO.md',
   })
 })
 

@@ -1,6 +1,6 @@
 // The only place that writes backlog files: keeps each file's own line ending and BOM, writes atomically and serialises read-modify-write cycles.
 
-import { closeSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { bomOf, eolOf, joinLines, splitLines } from './text.mjs'
 
@@ -61,6 +61,17 @@ function withLock(path, fn) {
   } finally {
     try { unlinkSync(lock) } catch { /* already removed */ }
   }
+}
+
+/** Appends `lines` to a file under its lock, creating it (and its folder) with `header` first when it does not exist yet. */
+export function appendText(path, lines, { header, eol }) {
+  mkdirSync(dirname(path), { recursive: true })
+  return withLock(path, () => {
+    const state = existsSync(path) ? readText(path) : { lines: [...header, ''], eol, bom: '' }
+    while (state.lines.length && state.lines[state.lines.length - 1].trim() === '') state.lines.pop()
+    state.lines.push('', ...lines, '')
+    writeText(path, state.lines, state.eol, state.bom)
+  })
 }
 
 /**

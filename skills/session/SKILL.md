@@ -23,7 +23,7 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/backlog.mjs" <command>`. If `${CLAUDE_P
 | `summary` | One line of numbers per project, plus backlog candidates to adopt |
 | `git [project]` | Branch, last commit and changed files with their owner |
 | `check` | Consistency check; `--project P` limits it, `--fast` skips the slow git checks |
-| `done <ID>` | Close an item: removes it and moves the `Next:` pointer |
+| `done <ID>` | Close an item: removes it (into the archive, when the config keeps one) and moves the `Next:` pointer |
 | `add <project or workstream> <type> <text>` | Append an item; `--project P` when the workstream name is ambiguous |
 | `overview [--write]` | The generated overview block (only when `overview` is configured) |
 | `init [--language it] [--prefix X] [--workspace]` | Create a backlog in the current folder |

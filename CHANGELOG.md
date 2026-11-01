@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - One definition of an item ID (`scripts/lib/ids.mjs`): a number of three or more digits everywhere, so `X-1000` is read the same way by every command.
 
 ### Added
+- Optional archive of closed items (`archive` in `.backlog.json`): `done` keeps each closed item, with its sub-lines and the closing date, in `<archive>/YYYY-MM.md`; `add` never reuses an archived ID.
 - Plugin manifest and marketplace entry; standard-library Node script (`scripts/backlog.mjs`) that prints JSON.
 - Backlog model in Markdown: flat file, indexed workstreams, nested subprojects; items with types, `Done when:`, `Depends on:`, `Blocks:`, `From:`, `Was:` and parts (`User:` steps).
 - Workspace discovery with a layered `.backlog.json`, automatic project scan (symlink-safe, case-insensitive aware) and candidates to adopt.

@@ -2,6 +2,7 @@
 
 import { join } from 'node:path'
 import { InvalidInputError, WorkstreamNotFoundError } from '../errors.mjs'
+import { archivedIds } from '../archive.mjs'
 import { formatItem, parseItems } from '../model.mjs'
 import { kwOf, projectItems } from '../routing.mjs'
 import { leaves } from '../tree.mjs'
@@ -32,7 +33,7 @@ export function add(ws, { project: projectName, workstream, type, text, doneWhen
 
   // Highest number among the project's items and the IDs kept in "Was:" lines, so a closed ID is never reused.
   const taken = new RegExp(`^${esc(node.id)}-(\\d{3,})$`)
-  const nums = projectItems(project).flatMap((x) => [x.id, ...x.was]).map((id) => id?.match(taken)?.[1]).filter(Boolean).map(Number)
+  const nums = projectItems(project).flatMap((x) => [x.id, ...x.was]).concat(archivedIds(project)).map((id) => id?.match(taken)?.[1]).filter(Boolean).map(Number)
 
   const path = join(project.root, node.file)
   // The number is taken inside the lock, from the file as it is now as well, so two sessions adding at once never get the same ID.

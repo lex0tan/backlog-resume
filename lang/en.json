@@ -7,6 +7,7 @@
     "doneWhen": "Done when",
     "from": "From",
     "was": "Was",
+    "closed": "Closed",
     "user": "User",
     "subprojects": "Subprojects",
     "columns": { "id": "ID", "file": "File", "alias": "Alias", "name": "Name", "status": "Status", "block": "Block" },
