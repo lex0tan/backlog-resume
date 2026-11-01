@@ -177,20 +177,20 @@ test('list: workstreams of every project with items, blockers, next and area', (
 
 test('list: From dates put arrived items first, overdue oldest first, future last', (t) => {
   const text = ['# CRM', '',
-    '- [ ] [CRM-001] `[code]` No date',
-    '- [ ] [CRM-002] `[seo]` Future', '  From: 2026-10-20',
-    '- [ ] [CRM-003] `[seo]` Arrived today', '  From: 2026-10-11',
-    '- [ ] [CRM-004] `[seo]` Overdue', '  From: 2026-10-01',
-    '- [ ] [CRM-005] `[seo]` Bad date', '  From: soon', ''].join('\n')
+    '- [ ] [TASK-001] `[code]` No date',
+    '- [ ] [TASK-002] `[seo]` Future', '  From: 2026-10-20',
+    '- [ ] [TASK-003] `[seo]` Arrived today', '  From: 2026-10-11',
+    '- [ ] [TASK-004] `[seo]` Overdue', '  From: 2026-10-01',
+    '- [ ] [TASK-005] `[seo]` Bad date', '  From: soon', ''].join('\n')
   const ws = shopWs(t, { 'TODO.md': text }, {})
   const r = list(ws, TODAY)
   const items = r.projects[0].workstreams[0].items
-  assert.deepEqual(items.map((i) => i.id), ['CRM-004', 'CRM-003', 'CRM-001', 'CRM-005', 'CRM-002'])
+  assert.deepEqual(items.map((i) => i.id), ['TASK-004', 'TASK-003', 'TASK-001', 'TASK-005', 'TASK-002'])
   assert.deepEqual(items[0].when, { from: '2026-10-01', days: 10, state: 'overdue' })
   assert.deepEqual(items[1].when, { from: '2026-10-11', days: 0, state: 'due' })
   assert.equal(items[4].when.state, 'later')
-  assert.match(items.find((i) => i.id === 'CRM-005').text, /From: soon/)
-  assert.deepEqual(r.projects[0].due, ['CRM-004', 'CRM-003'])
+  assert.match(items.find((i) => i.id === 'TASK-005').text, /From: soon/)
+  assert.deepEqual(r.projects[0].due, ['TASK-004', 'TASK-003'])
 })
 
 test('list: project option and configured typeOrder', (t) => {

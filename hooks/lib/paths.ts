@@ -1,5 +1,5 @@
 // The one place that decides whether two spellings name the same file. Paths reach the panel as
-// `C:\Users\x\My Projects\app\TODO.md` (backslashes, spaces) or `c:/users/x/my projects/app/todo.md`.
+// `D:\My Projects\app\TODO.md` (backslashes, spaces) or `d:/my projects/app/todo.md`.
 
 const BACKSLASH = String.fromCharCode(92)
 const DRIVE_ROOT = /^[a-z]:\/$/i
