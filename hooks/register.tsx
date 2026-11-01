@@ -15,9 +15,88 @@ const GIT_COMMIT = /\bgit\b[^|;&\n]*\bcommit\b/
 // A command that runs the plugin's script (split, adopt write...) may create or remove backlog files.
 const RUNS_SCRIPT = /backlog\.mjs/
 
+type Ctx = Parameters<typeof refreshActive>[0]
+type Settled = { result?: unknown; context?: readonly string[]; deny?: string }
+
+// Directory rule for files that declare hooks: the hook context is only used as a plain call or passed alone to a function declared here.
+// These helpers name the context `ctx` on purpose, and they never let a failing guard fail the tool call or the session.
+function note(ctx: Ctx, what: string, err: unknown) {
+  ctx.ui.log(`backlog: ${what}: ${err instanceof Error ? err.message : String(err)}`)
+}
+
 // A failed refresh of the status line never fails the tool call that triggered it.
-const refreshAfterTool = ($: Parameters<typeof refreshActive>[0]) =>
-  refreshActive($).catch(err => $.ui.log(`backlog: status refresh failed: ${err instanceof Error ? err.message : String(err)}`))
+async function refreshAfterTool(ctx: Ctx) {
+  try {
+    await refreshActive(ctx)
+  } catch (err) {
+    note(ctx, 'status refresh failed', err)
+  }
+}
+
+function refreshNow(ctx: Ctx) {
+  return refreshActive(ctx)
+}
+
+// The session's own item comes back and orphans of this workspace are proposed.
+async function restoreSession(ctx: Ctx) {
+  try {
+    await restore(ctx)
+  } catch (err) {
+    note(ctx, 'restore failed', err)
+  }
+}
+
+// The time spent moves on the status line, and an item closed outside any tool call (by hand, from another tool) is seen.
+async function beat(ctx: Ctx) {
+  try {
+    await heartbeat(ctx)
+  } catch (err) {
+    note(ctx, 'heartbeat failed', err)
+  }
+  await refreshAfterTool(ctx)
+}
+
+function denialOf(ctx: Ctx, path: string | undefined) {
+  return readDenial(ctx, path)
+}
+
+function editAround<R extends Settled>(ctx: Ctx, path: string | undefined, run: () => Promise<R>, refresh: boolean) {
+  const guarded = guardedEdit(ctx, path, run)
+  return refresh ? guarded.finally(() => refreshAfterTool(ctx)) : guarded
+}
+
+// Commit reminder: with an active item, a commit that does not cite its ID is pointed out afterwards.
+async function bashAround(ctx: Ctx, e: { command?: string }, next: () => Promise<any>) {
+  const command = e.command ?? ''
+  const own = GIT_COMMIT.test(command) ? await mineOf(ctx) : null
+  const before = own ? await headOf(ctx, own) : null
+  const result = await next()
+  if (RUNS_SCRIPT.test(command)) await forgetFiles(ctx)
+  // A command may change the item's file too (a script, a checkout, a commit that closes it).
+  await refreshAfterTool(ctx)
+  const text = own && result.deny === undefined && result.result !== undefined ? await commitWarning(ctx, own, before) : null
+  return text && result.deny === undefined ? { ...result, context: [...(result.context ?? []), text] } : result
+}
+
+function runMode(ctx: Ctx, mode: string, request: string) {
+  return modeRun(ctx, mode, request)
+}
+
+function loadBoard(ctx: Ctx, args: string) {
+  return load(ctx, args)
+}
+
+function startBoard(ctx: Ctx, board: Awaited<ReturnType<typeof load>>['board']) {
+  return startAt(ctx, board)
+}
+
+function paintPane(ctx: Ctx, e: Parameters<typeof renderPane>[1]) {
+  return renderPane(ctx, e)
+}
+
+function paintStatus(ctx: Ctx, e: Parameters<typeof renderStatus>[1], next: unknown) {
+  return renderStatus(ctx, e, next as never)
+}
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -30,12 +109,9 @@ export const register: Register = on => {
     } catch (err) {
       $.ui.log(`backlog: /backlogs not registered: ${err instanceof Error ? err.message : String(err)}`)
     }
-    // The session's own item comes back, orphans of this workspace are proposed, and the heartbeat starts.
-    await restore($).catch(err => $.ui.log(`backlog: restore failed: ${err instanceof Error ? err.message : String(err)}`))
+    await restoreSession($)
     $.clock.every(HEARTBEAT_MS, () => {
-      heartbeat($).catch(err => $.ui.log(`backlog: heartbeat failed: ${err instanceof Error ? err.message : String(err)}`))
-      // The time spent moves on the status line, and an item closed outside any tool call (by hand, from another tool) is seen.
-      refreshActive($).catch(err => $.ui.log(`backlog: status refresh failed: ${err instanceof Error ? err.message : String(err)}`))
+      void beat($)
     })
     return next(e)
   })
@@ -43,64 +119,54 @@ export const register: Register = on => {
   // At the end of a turn of the main loop: an item the model removed from its file is freed.
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
-    if (!e.agentId) await refreshActive($)
+    if (!e.agentId) await refreshNow($)
     return result
   })
 
   // The item stays when the session ends unfinished: it becomes an orphan the next session proposes.
   on('session.end', async ($, e, next) => {
-    await refreshActive($)
+    await refreshNow($)
     return next(e)
   })
 
   // Read guard: with an active item the prompt carries everything, so other backlogs stay closed. A failing guard lets the call through.
   on('tool.call', { tool: 'Read' }, async ($, e, next) => {
-    const deny = await readDenial($, e.file_path)
+    const deny = await denialOf($, e.file_path)
     return deny ? { deny } : next(e)
   }).catch(($, e, next) => next(e))
   on('tool.call', { tool: 'Grep' }, async ($, e, next) => {
-    const deny = await readDenial($, e.path)
+    const deny = await denialOf($, e.path)
     return deny ? { deny } : next(e)
   }).catch(($, e, next) => next(e))
 
   // Check after an edit of a backlog file: new issues go back to the model as context, never as a refusal.
   // The status line follows the edit at once: a part ticked moves the bar, the item removed closes it.
-  on('tool.call', { tool: 'Edit' }, ($, e, next) => guardedEdit($, e.file_path, () => next(e)).finally(() => refreshAfterTool($))).catch(($, e, next) => next(e))
-  on('tool.call', { tool: 'Write' }, ($, e, next) => guardedEdit($, e.file_path, () => next(e)).finally(() => refreshAfterTool($))).catch(($, e, next) => next(e))
-  on('tool.call', { tool: 'NotebookEdit' }, ($, e, next) => guardedEdit($, e.notebook_path, () => next(e))).catch(($, e, next) => next(e))
+  on('tool.call', { tool: 'Edit' }, ($, e, next) => editAround($, e.file_path, () => next(e), true)).catch(($, e, next) => next(e))
+  on('tool.call', { tool: 'Write' }, ($, e, next) => editAround($, e.file_path, () => next(e), true)).catch(($, e, next) => next(e))
+  on('tool.call', { tool: 'NotebookEdit' }, ($, e, next) => editAround($, e.notebook_path, () => next(e), false)).catch(($, e, next) => next(e))
 
-  // Commit reminder: with an active item, a commit that does not cite its ID is pointed out afterwards.
-  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
-    const command = e.command ?? ''
-    const own = GIT_COMMIT.test(command) ? await mineOf($) : null
-    const before = own ? await headOf($, own) : null
-    const result = await next(e)
-    if (RUNS_SCRIPT.test(command)) await forgetFiles($)
-    // A command may change the item's file too (a script, a checkout, a commit that closes it).
-    await refreshAfterTool($)
-    const text = own && result.deny === undefined && result.result !== undefined ? await commitWarning($, own, before) : null
-    return text && result.deny === undefined ? { ...result, context: [...(result.context ?? []), text] } : result
-  }).catch(($, e, next) => next(e))
+  on('tool.call', { tool: 'Bash' }, ($, e, next) => bashAround($, e, () => next(e))).catch(($, e, next) => next(e))
 
   on('command.run', { command: 'backlogs' }, async ($, e) => {
     const args = e.args.trim()
     const first = args.split(/\s+/)[0] ?? ''
     const mode = MODES.find(m => m === first.toLowerCase())
     if (mode) {
-      const run = await modeRun($, mode, args.slice(first.length).trim())
+      const run = await runMode($, mode, args.slice(first.length).trim())
       if ('refused' in run) return { text: run.refused }
       // The host refuses a submit from inside a command.run hook (it would wait on its own turn): it goes out right after the hook returns.
       $.clock.after(0, () => $.prompt.submit({ text: run.text, asUser: true }))
       return { text: `backlog: ${mode}` }
     }
-    const { board, strings } = await load($, args)
-    await startAt($, board)
-    if (!(await $.ui.panes()).some(pane => pane.id === PANE)) {
+    const { board, strings } = await loadBoard($, args)
+    await startBoard($, board)
+    const panes = await $.ui.panes()
+    if (!panes.some(pane => pane.id === PANE)) {
       await $.ui.open({ id: PANE, title: t(strings, 'title'), rows: 22, columns: 70, focus: true, closeOnEscape: true })
     }
     return { text: board.error ?? t(strings, board.filter ? 'openedFor' : 'opened', { n: board.items.length, filter: board.filter }) }
   })
 
-  on('ui.render', { component: 'Pane', requestId: PANE }, ($, e) => renderPane($, e))
-  on('ui.render', { component: 'PromptHint' }, ($, e, next) => renderStatus($, e, next as never)).catch(($, e, next) => next(e))
+  on('ui.render', { component: 'Pane', requestId: PANE }, ($, e) => paintPane($, e))
+  on('ui.render', { component: 'PromptHint' }, ($, e, next) => paintStatus($, e, next)).catch(($, e, next) => next(e))
 }

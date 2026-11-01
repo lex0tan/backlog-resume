@@ -276,6 +276,10 @@ Writes are safe across sessions too. The script is the only thing that writes ba
 - **What it sends.** Nothing leaves your machine: no network calls, no telemetry, no account. It reads no credentials or environment secrets.
 - **Prompts it submits.** `/backlogs <mode> <request>` and the panel's *Work on it* submit one prompt as if you had typed it: the mode's instructions, the item's text and the names of its backlog files. Nothing else is added to your prompts; the only other text it adds to the session is the check results after a backlog edit and the commit reminder.
 - **What it stores.** Session state (active item, heartbeat, a count of closed items) in the plugin's own store on your machine.
+- **What it reads.** Your backlog files (`TODO.md` and the indexes it links), the plugin's own `lang/*.json`, and the git history of the current workspace. This is the only local data it reads, and none of it is sent anywhere: it goes into the item shown in the panel and, when you press *Work on it*, into the prompt above.
+- **The conversation.** The `turn.complete` hook only checks whether the active item's line is still in its file; it does not read, store or send the conversation text.
+- **Credentials.** None are read. The `key` and `/^[a-z]{2,3}.../` expressions in the code are store keys (`backlogs.active`...) and a check that a language tag such as `en` or `it` is a plain code before it becomes a file name; the `git` command line is built from the workspace folder and a fixed list of read-only subcommands, never from user text or environment secrets.
+- **The demo GIF.** `.github/panel.gif` is a screen recording used only by this README. It contains no script, and nothing in the plugin downloads or executes it.
 
 ## Guards
 
