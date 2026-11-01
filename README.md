@@ -1,6 +1,17 @@
-# backlog
+<h1 align="center">claude-backlog</h1>
+<p align="center"><strong>Resume work from a plain Markdown backlog, inside Claude Code</strong></p>
+<p align="center">Verified state. One next step. A side panel to pick what to work on.</p>
 
-A Claude Code plugin that resumes work from a plain Markdown backlog. It reads your `TODO.md` files, checks them against git and the repository, tells you the **verified** state and **one** next step, and opens a side panel to pick the item to work on. The backlog lives only in your files; the plugin keeps nothing else but the state of the sessions (active items, locks, a count of items closed) in its own store.
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-brightgreen" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/node-%E2%89%A520-blue" alt="Node 20 or newer">
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey" alt="macOS, Linux, Windows">
+</p>
+
+```
+/plugin marketplace add lex0tan/claude-backlog
+/plugin install backlog@claude-backlog
+```
 
 ```
 ┌ Backlog · whole workspace ─────────────────────────────────┐
@@ -16,33 +27,87 @@ A Claude Code plugin that resumes work from a plain Markdown backlog. It reads y
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Requirements
+> **claude-backlog** is a Claude Code plugin (command: `/backlog`) that reads the `TODO.md` files you already have,
+> checks them against git and the repository, and tells Claude where you really are.
+> No server, no account, no database: the backlog lives only in your files.
 
-- Claude Code (terminal, desktop app or IDE extension)
-- Node.js 20 or newer (the script uses only the standard library)
-- git is optional: without it item ages fall back to file times and commit checks are skipped
+## Why
+
+A new session starts cold. You re-explain what is done, what is blocked and what comes next, and the model
+guesses from stale notes. Notes drift: items are finished but still listed, "next" points at something already
+shipped, two sessions edit the same item.
+
+claude-backlog fixes the starting point, not the way you write:
+
+1. **It verifies before it tells.** Each item is checked against git (commits that cite its ID, how long it has been
+   untouched) and the files it mentions. What it cannot verify is reported as *not verifiable*, never as a to-do.
+2. **It gives one next step**, not a list of everything.
+3. **It keeps sessions apart.** The item a session works on is locked, so a second session does not take it.
+4. **It keeps the backlog small.** A finished item is removed from the file; history lives in `git log`.
+
+## Features
+
+- 📝 **Markdown-native**: items are lines in `TODO.md`, with types, dependencies, parts and "done when" checks
+- 🗂️ **Grows with you**: one flat file, then an index of workstreams, then nested subprojects
+- 🔎 **Finds your projects**: scans the workspace for backlogs, resolves a request such as "resume the website" to a project, workstream or item
+- ✅ **Verified state**: stale items, overdue dates, broken links, duplicate IDs and dependency cycles (shown with the chain that closes them)
+- 🧭 **Side panel**: agenda, projects → areas → types → items, "Unblock first", "Waiting on you", search
+- 🔒 **Multi-session safe**: per-session active item, heartbeat, orphan detection, resume or release
+- 🛡️ **Guards**: the session reads only its item's files, backlog edits are re-checked, commits are reminded to cite the item ID
+- 🔁 **Adopts what you have**: `/backlog adopt` proposes how to bring existing notes into the model, nothing is written until you agree
+- 🌍 **Languages**: English and Italian included, add yours by copying one JSON file
+- 🧩 **Scriptable**: the script behind it is a plain Node CLI that prints JSON and uses only the standard library
 
 ## Install
 
+Requirements: Claude Code (terminal, desktop app or IDE extension) and Node.js 20 or newer. git is optional:
+without it item ages fall back to file times and commit checks are skipped.
+
 ```
-/plugin install backlog --marketplace <owner>/claude-backlog
+/plugin marketplace add lex0tan/claude-backlog
+/plugin install backlog@claude-backlog
 ```
 
 or from a shell:
 
 ```
-claude plugin install backlog --marketplace <owner>/claude-backlog
+claude plugin marketplace add lex0tan/claude-backlog
+claude plugin install backlog@claude-backlog
 ```
 
-`<owner>/claude-backlog` is the GitHub repository that holds this plugin. The desktop app installs it from the same marketplace.
+The desktop app installs it from the same marketplace.
 
 ## Quick start
 
 1. In your project folder run `/backlog init`. It creates a `TODO.md` (and a `.backlog.json`) in the model below.
-   Already have notes? `/backlog adopt` finds backlog-like files and proposes how to bring them into the model; nothing is written until you agree.
-2. Run `/backlog` to open the panel, or ask in plain words: `/backlog resume the website`, `/backlog plan API`, `/backlog do API-002`.
+   Already have notes? `/backlog adopt` finds backlog-like files and proposes how to bring them into the model.
+2. Run `/backlog` to open the panel, or ask in plain words:
+
+   ```
+   /backlog resume the website
+   /backlog plan API
+   /backlog do API-002
+   ```
+
+3. Claude answers with the verified state and one next step. When you start an item, it becomes the session's
+   active item; when it is finished, the item is removed from the file and `Next:` moves on.
 
 There is a small workspace to try it on in [`examples/demo`](examples/demo).
+
+## How it works
+
+```
+ TODO.md files ──► scripts/backlog.mjs ──► JSON ──► skill (instructions for Claude)
+ (your backlog)    discover · parse · check         ▲
+                   git ages · routing · locks       └── panel + guards (hooks)
+```
+
+- **The script** (`scripts/`, standard library only) finds the projects, parses the items, builds the dependency graph,
+  reads git and prints JSON. It is the only thing that touches your backlog files.
+- **The skill** (`skills/session/`) tells Claude how to use that JSON for each mode (`audit`, `resume`, `plan`, `do`, `adopt`, `init`, `split`).
+- **The hooks** (`hooks/`) draw the panel, keep the per-session state and run the guards.
+
+The plugin stores nothing about your backlog: only session state (active items, locks, a count of closed items).
 
 ## The backlog model
 
