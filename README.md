@@ -270,6 +270,13 @@ Writes are safe across sessions too. The script is the only thing that writes ba
 - **Session locks work on one machine only.** The item a session holds, the heartbeat and the orphan detection live in the plugin's own store on that machine, not in your repo. They do not protect an item between two worktrees or two computers: each side sees the item as free. If you work from several places, pick the items yourself. (A lock file such as `.backlog/locks/<ID>` that travels with the repo is a possible future option.)
 - The per-file write lock (see above) has the same scope: it keeps sessions on one machine from overwriting each other, not clones of the repo.
 
+## What it runs, sends and stores
+
+- **Programs it runs.** `node` runs the plugin's own `scripts/backlog.mjs` (reads and writes your backlog files, no network), and `git` runs read-only queries (`log`, `blame`, `status`, `ls-files`, `branch`, `rev-parse`) on the current workspace to date items and check commits. Nothing else is started.
+- **What it sends.** Nothing leaves your machine: no network calls, no telemetry, no account. It reads no credentials or environment secrets.
+- **Prompts it submits.** `/backlog <mode> <request>` and the panel's *Work on it* submit one prompt as if you had typed it: the mode's instructions, the item's text and the names of its backlog files. Nothing else is added to your prompts; the only other text it adds to the session is the check results after a backlog edit and the commit reminder.
+- **What it stores.** Session state (active item, heartbeat, a count of closed items) in the plugin's own store on your machine.
+
 ## Guards
 
 Three hooks keep the session on track. None of them blocks an edit or a commit; only the read guard can refuse, and only while an item is active.
