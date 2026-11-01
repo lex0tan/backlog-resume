@@ -1,12 +1,9 @@
 <h1 align="center">claude-backlog</h1>
 <p align="center"><strong>Resume work from a plain Markdown backlog, inside Claude Code</strong></p>
-<p align="center">Verified state. One next step. A side panel to pick what to work on.</p>
+<p align="center">Every new session starts cold: you re-explain what is done, what is blocked and what is next.<br>claude-backlog checks your <code>TODO.md</code> against git and tells Claude where you really are, with one next step.</p>
 
 <p align="center">
-  <a href="https://github.com/lex0tan/claude-backlog/actions/workflows/test.yml"><img src="https://github.com/lex0tan/claude-backlog/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-brightgreen" alt="MIT license"></a>
-  <img src="https://img.shields.io/badge/node-%E2%89%A520-blue" alt="Node 20 or newer">
-  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey" alt="macOS, Linux, Windows">
+  <img src=".github/panel.gif" alt="The /backlog panel in Claude Code: agenda, projects, a blocked item with its parts, Unblock first, Waiting on you, a new item added and closed, then Work on it with the status line bar filling as Claude ticks the parts" width="900">
 </p>
 
 ```
@@ -15,7 +12,10 @@
 ```
 
 <p align="center">
-  <img src=".github/panel.gif" alt="The /backlog panel in Claude Code: agenda, projects, a blocked item with its parts, Unblock first, Waiting on you, a new item added and closed, then Work on it with the status line bar filling as Claude ticks the parts" width="900">
+  <a href="https://github.com/lex0tan/claude-backlog/actions/workflows/test.yml"><img src="https://github.com/lex0tan/claude-backlog/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-brightgreen" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/node-%E2%89%A520-blue" alt="Node 20 or newer">
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey" alt="macOS, Linux, Windows">
 </p>
 
 > **claude-backlog** is a Claude Code plugin (command: `/backlog`) that reads the `TODO.md` files you already have,
@@ -264,6 +264,11 @@ The terminal and the desktop app draw it in colour after the line Claude Code an
 Each session keeps its active item in the plugin's store with a heartbeat every minute. An item another live session holds is marked *in progress elsewhere* and cannot be taken, from the panel or with `/backlog do`; the modes also tell the skill which items to leave alone. Items are matched by file, so it does not matter which folder each session started from. If a session goes silent for `lockMinutes` its item becomes an **orphan**: the next session in the same workspace is told, and the panel offers **Resume** or **Release**. Orphans are never taken automatically. A `/clear` may give the session a new ID: the item then shows as an orphan of your own session, and **Resume** takes it back (it is offered while the session holds no item of its own). Entries of sessions silent for a month are deleted when a session starts.
 
 Writes are safe across sessions too. The script is the only thing that writes backlog files: it writes to a temporary file and renames it over the old one, and `done` and `add` hold a lock on the file while they read and rewrite it (a lock older than 30 seconds is taken over). Two sessions closing or adding items in the same file never lose a change or get the same ID.
+
+## Limits
+
+- **Session locks work on one machine only.** The item a session holds, the heartbeat and the orphan detection live in the plugin's own store on that machine, not in your repo. They do not protect an item between two worktrees or two computers: each side sees the item as free. If you work from several places, pick the items yourself. (A lock file such as `.backlog/locks/<ID>` that travels with the repo is a possible future option.)
+- The per-file write lock (see above) has the same scope: it keeps sessions on one machine from overwriting each other, not clones of the repo.
 
 ## Guards
 
