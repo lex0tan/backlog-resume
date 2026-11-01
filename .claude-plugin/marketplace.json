@@ -1,6 +1,6 @@
 {
-  "name": "backlog",
-  "owner": { "name": "backlog contributors" },
+  "name": "claude-backlog",
+  "owner": { "name": "claude-backlog contributors" },
   "plugins": [
     {
       "name": "backlog",

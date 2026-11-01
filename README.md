@@ -25,16 +25,16 @@ A Claude Code plugin that resumes work from a plain Markdown backlog. It reads y
 ## Install
 
 ```
-/plugin install backlog --marketplace <owner>/<repo>
+/plugin install backlog --marketplace <owner>/claude-backlog
 ```
 
 or from a shell:
 
 ```
-claude plugin install backlog --marketplace <owner>/<repo>
+claude plugin install backlog --marketplace <owner>/claude-backlog
 ```
 
-`<owner>/<repo>` is the GitHub repository that holds this plugin. The desktop app installs it from the same marketplace.
+`<owner>/claude-backlog` is the GitHub repository that holds this plugin. The desktop app installs it from the same marketplace.
 
 ## Quick start
 
