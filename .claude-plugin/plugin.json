@@ -7,5 +7,21 @@
     "name": "lex0tan",
     "url": "https://github.com/lex0tan"
   },
+  "keywords": [
+    "backlog",
+    "todo",
+    "markdown",
+    "resume",
+    "next-step",
+    "git",
+    "project-management",
+    "session"
+  ],
+  "homepage": "https://github.com/lex0tan/backlog-resume",
+  "repository": "https://github.com/lex0tan/backlog-resume",
+  "supportUrl": "https://github.com/lex0tan/backlog-resume/issues",
+  "documentationUrl": "https://github.com/lex0tan/backlog-resume#readme",
+  "privacyPolicyUrl": "https://github.com/lex0tan/backlog-resume#what-it-runs-sends-and-stores",
+  "termsOfServiceUrl": "https://github.com/lex0tan/backlog-resume/blob/main/LICENSE",
   "icon": "./.claude-plugin/icon.png"
 }
