@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import type { TestBody } from 'claude-code/testing'
 
-import { FILE, PANE, TURN, ago, entry, setup } from './fixtures/world'
+import { CWD, FILE, PANE, TURN, ago, entry, setup } from './fixtures/world'
 
 type $T = Parameters<TestBody>[0]
 
@@ -17,7 +17,7 @@ test('an item one session takes is in progress elsewhere for another, which cann
   await a.press({ key: 'i-shop:API-002' })
   await a.press({ key: 'work' })
   expect(seen.prompts.length).toBe(1)
-  expect(store.get('active:A')).toMatchObject({ id: 'API-002', project: 'shop', file: FILE, sessionId: 'A', cwd: 'C:\\ws' })
+  expect(store.get('active:A')).toMatchObject({ id: 'API-002', project: 'shop', file: FILE, sessionId: 'A', cwd: CWD })
   await a.unmount()
 
   who.id = 'B'
@@ -73,7 +73,7 @@ test('Release deletes the orphan entry without taking the item', async ($, on) =
 
 test('a session resumed under the same ID finds its own item, however old', async ($, on) => {
   const { seen, store } = setup(on, { 'active:A': entry('A', { heartbeatAt: ago(60) }) })
-  await $.session.start({ cwd: 'C:\\ws', surface: 'terminal', isInteractive: true })
+  await $.session.start({ cwd: CWD, surface: 'terminal', isInteractive: true })
   expect(seen.toasts).toEqual(['In progress: shop:API-002. Run /backlog:session to resume or close it.'])
   await open($)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
@@ -84,7 +84,7 @@ test('a session resumed under the same ID finds its own item, however old', asyn
 
 test('the heartbeat of a started session keeps its entry fresh', async ($, on) => {
   const { store, clock } = setup(on, { 'active:A': entry('A', { heartbeatAt: ago(3) }) })
-  await $.session.start({ cwd: 'C:\\ws', surface: 'terminal', isInteractive: true })
+  await $.session.start({ cwd: CWD, surface: 'terminal', isInteractive: true })
   await clock.advance(60_000)
   expect((store.get('active:A') as { heartbeatAt: number }).heartbeatAt).toBeGreaterThan(ago(1))
 })

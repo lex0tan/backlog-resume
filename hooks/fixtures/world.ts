@@ -9,7 +9,9 @@ import { EN } from './panel'
 export type OnT = Parameters<TestBody>[1]
 
 export const MIN = 60_000
-export const ROOT = 'C:/ws'
+/** One POSIX-style root: a drive-letter path is only absolute on Windows, and the host resolves it against the working folder elsewhere. */
+export const ROOT = '/ws'
+export const CWD = '/ws'
 export const FILE = `${ROOT}/shop/TODO.md`
 
 export const item = (id: string, extra: Record<string, unknown> = {}) =>
@@ -29,7 +31,7 @@ export const LISTED = {
 
 /** The same shop seen from a session that started inside it: the project is `.` and the root is the shop folder. */
 export const LISTED_FROM_SHOP = {
-  ...LISTED, root: 'C:/ws/shop',
+  ...LISTED, root: `${ROOT}/shop`,
   projects: [
     { rel: '.', name: 'shop', next: null, due: [], workstreams: [
       { id: 'API', label: 'Backend API', file: 'TODO.md', area: { id: 'API', name: 'Backend API', subproject: false }, items: [{ ...item('API-002'), project: '.' }] },
@@ -53,7 +55,7 @@ export const TURN = { answer: '', durationMs: 1, isAborted: false, turnId: 't1',
 
 export const entry = (sessionId: string, extra: Record<string, unknown> = {}) => ({
   id: 'API-002', project: 'shop', file: `${ROOT}/shop/TODO.md`, text: 'text API-002', language: 'en', startedAt: Date.now() - 20 * MIN, dirtyAtStart: [],
-  sessionId, cwd: 'C:\\ws', heartbeatAt: Date.now(), ...extra,
+  sessionId, cwd: CWD, heartbeatAt: Date.now(), ...extra,
 })
 export const ago = (min: number) => Date.now() - min * MIN
 
@@ -70,11 +72,11 @@ export function setup(on: OnT, entries: Record<string, unknown> = {}, { listed =
   on('store.delete', (_, e) => { store.delete(e.key); return { value: undefined } })
   on('store.keys', () => ({ value: [...store.keys()] }))
   on('session.id', () => ({ value: who.id }))
-  on('session.cwd', () => ({ value: 'C:\\ws' }))
+  on('session.cwd', () => ({ value: CWD }))
   on('command.register', () => ({ value: { command: 'backlog' } }))
   on('fs.read', (_, e) => {
     if (/lang[\\/]\w+\.json$/.test(e.path)) return { value: JSON.stringify({ panel: EN }) }
-    if (e.path.replace(/\\/g, '/') === FILE) {
+    if (e.path.replace(/\\/g, '/').replace(/^[A-Za-z]:/, '') === FILE) {
       if (seen.fileGone) throw new Error(`ENOENT: no such file or directory, open '${e.path}'`)
       return { value: seen.file }
     }
