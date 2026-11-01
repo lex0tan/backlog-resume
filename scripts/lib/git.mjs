@@ -77,7 +77,12 @@ export function commitsFor(dir, ids, n = 10) {
   const seen = new Set()
   for (const id of ids) {
     const log = git(dir, ['log', '-n', String(n), '--fixed-strings', `--grep=${id}`, '--format=%ct %h %cs %s'])
-    for (const line of (log ?? '').split('\n').filter(Boolean)) seen.add(line)
+    // --grep also matches inside longer IDs (API-001 in SHOP-API-001): keep the subjects that cite the whole ID.
+    const whole = new RegExp(`(^|[^A-Za-z0-9-])${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z0-9-])`)
+    for (const line of (log ?? '').split('\n').filter(Boolean)) {
+      const subject = line.split(' ').slice(3).join(' ')
+      if (whole.test(subject)) seen.add(line)
+    }
   }
   return [...seen]
     .sort((x, y) => Number(y.split(' ')[0]) - Number(x.split(' ')[0]))

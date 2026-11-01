@@ -18,6 +18,8 @@ const LANG_DIR = fileURLToPath(new URL('../../lang/', import.meta.url))
  * @returns {Keywords}
  */
 export function loadKeywords(language = 'en', overrides = {}) {
+  // The code becomes part of a file name: only plain language tags are read.
+  if (!/^[a-z]{2,3}(-[A-Za-z0-9]+)?$/.test(language)) throw new LanguageNotFoundError(language, `${LANG_DIR}${language}.json`)
   const path = `${LANG_DIR}${language}.json`
   let raw
   try {
@@ -37,6 +39,7 @@ export function loadKeywords(language = 'en', overrides = {}) {
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const ID = '[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*'
+const ID_NEXT = '[A-Z][A-Z0-9]+(?:-[A-Z0-9]+)*'
 
 /**
  * Regexes built from the (escaped) keywords. `linkSegment` is global: use matchAll or reset lastIndex.
@@ -44,7 +47,7 @@ const ID = '[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*'
 export function keywordRegexes(kw) {
   const links = `${esc(kw.dependsOn)}|${esc(kw.blocks)}`
   return {
-    next: new RegExp(`^[ \\t>*_-]*${esc(kw.next)}:(?:\\*\\*|__)?\\s*\`?(${ID})\`?(?![A-Za-z0-9-])`, 'm'),
+    next: new RegExp(`^[ \\t>*_-]*${esc(kw.next)}:(?:\\*\\*|__)?[ \\t]*\`?(${ID_NEXT})\`?(?![A-Za-z0-9-])`, 'm'),
     link: new RegExp(`^(?:${links}):`),
     linkSegment: new RegExp(`(${links}):((?:(?!(?:${links}):).)*)`, 'g'),
     doneWhen: new RegExp(`^${esc(kw.doneWhen)}:\\s*`),

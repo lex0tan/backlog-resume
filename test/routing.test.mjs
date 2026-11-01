@@ -242,3 +242,9 @@ test('fix: an unknown qualifier falls back to the bare ID', (t) => {
   assert.throws(() => resolveId(ws, 'foo:NOPE-001'), ItemNotFoundError)
   assert.equal(route(ws, 'riprendi foo:SHOP-WEB-001').leaf, 'SHOP-WEB')
 })
+
+test('a project named in capitals is still a project, an item ID is not', (t) => {
+  const { ws } = setup(t, italianShop(), 'it', { 'docs/TODO.md': DOCS })
+  assert.equal(route(ws, 'riprendi DOCS').project, 'docs')
+  assert.notEqual(route(ws, 'riprendi SHOP-API-001').project, 'docs')
+})

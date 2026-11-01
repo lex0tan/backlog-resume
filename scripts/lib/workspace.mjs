@@ -95,7 +95,14 @@ export function discover(root, config, kw) {
   const queue = [{ dir: root, depth: 0 }]
   while (queue.length) {
     const { dir, depth } = queue.shift()
-    const entries = readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))
+    // A folder that cannot be read (permissions, removed meanwhile) is skipped; the rest of the workspace still works.
+    let entries
+    try {
+      entries = readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))
+    } catch (err) {
+      if (['EACCES', 'EPERM', 'ENOENT', 'ENOTDIR'].includes(err.code) && dir !== root) continue
+      throw err
+    }
     examine(dir, entries)
     if (depth >= config.maxDepth) continue
     for (const entry of entries) {

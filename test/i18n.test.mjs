@@ -47,3 +47,14 @@ test('en and it have the same keys in every section', () => {
   assert.deepEqual(Object.keys(en.keywords.columns).sort(), Object.keys(it.keywords.columns).sort())
   assert.deepEqual(Object.keys(en.keywords.types).sort(), Object.keys(it.keywords.types).sort())
 })
+
+test('language codes that are not plain tags never reach the file system', () => {
+  for (const bad of ['../../x', '..\\x', 'en/../it', 'e', '']) assert.throws(() => loadKeywords(bad), LanguageNotFoundError, bad)
+})
+
+test('Next: takes an ID on its own line, not prose or the next line', () => {
+  const re = keywordRegexes(loadKeywords('en'))
+  assert.equal(re.next.exec('Next: I think we should wait'), null)
+  assert.equal(re.next.exec('Next:\nAPI-001'), null)
+  assert.equal(re.next.exec('Next: API-001')[1], 'API-001')
+})

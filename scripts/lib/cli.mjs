@@ -43,6 +43,8 @@ Options:
 `
 
 const COMMANDS = ['route', 'item', 'list', 'summary', 'files', 'done', 'add', 'git', 'check', 'overview', 'split', 'adopt']
+// A real calendar date: 2030-99-99 matches the shape but is not one.
+const validDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T00:00:00Z`)) && new Date(`${s}T00:00:00Z`).toISOString().slice(0, 10) === s
 const VALUE_FLAGS = new Set(['cwd', 'project', 'input', 'today', 'language', 'prefix'])
 const BOOL_FLAGS = new Set(['write', 'fast', 'dry-run', 'workspace'])
 
@@ -112,7 +114,7 @@ export function main(argv, { cwd = process.cwd(), stdout = process.stdout, stder
     const [command, ...rest] = positional
     if (!command) throw new UsageError('Missing command')
     if (command !== 'init' && !COMMANDS.includes(command)) throw new UsageError(`Unknown command: ${command}`)
-    if (flags.today && !/^\d{4}-\d{2}-\d{2}$/.test(flags.today)) throw new UsageError('--today expects YYYY-MM-DD')
+    if (flags.today && !validDate(flags.today)) throw new UsageError('--today expects YYYY-MM-DD')
     const base = resolve(cwd, flags.cwd ?? '.')
     const today = flags.today ?? todayIso()
     const input = () => readJson(flags.input, base)

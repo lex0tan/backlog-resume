@@ -11,6 +11,8 @@ import { norm, posix } from './text.mjs'
 import { allItems, ancestors, isAncestor, nodeForId, subprojectOf } from './tree.mjs'
 
 const ITEM_ID = /^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d{3}$/
+// An item ID ends in a number; a bare all-caps word or a workstream ID may still name a project.
+const ITEM_ID_TOKEN = /(?:[A-Za-z0-9._-]+:)?\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d+\b/g
 const ID_TOKEN = /(?:([A-Za-z0-9._-]+):)?\b([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*)\b/g
 
 /** Name used to qualify IDs (`project:ID`) and reported in results: the folder relative to the workspace. */
@@ -93,7 +95,7 @@ export function route(ws, query) {
   }
 
   // IDs are removed first: a project prefix inside an ID is not a mention of the project.
-  const qWords = norm(query.replace(ID_TOKEN, ' '))
+  const qWords = norm(query.replace(ITEM_ID_TOKEN, ' '))
   const mentioned = ws.projects.filter((p) => p.aliases.some((a) => qWords.includes(norm(a))))
 
   // 1. Explicit ID, optionally qualified or narrowed by a named project: wins over every alias.

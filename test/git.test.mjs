@@ -186,3 +186,10 @@ test('commitsFor orders by commit time, not by date string', (t) => {
   commit(root, 'feat: SHOP-001 b', at('2026-03-01T20:00:00Z'))
   assert.match(commitsFor(root, ['SHOP-001'])[0], / feat: SHOP-001 b$/)
 })
+
+test('commitsFor does not count a longer ID that contains the searched one', (t) => {
+  const root = workspace(t, englishShop(), { git: true })
+  commit(root, 'feat: SHOP-API-001 export')
+  assert.equal(commitsFor(root, ['API-001']).length, 0)
+  assert.equal(commitsFor(root, ['SHOP-API-001']).length, 1)
+})

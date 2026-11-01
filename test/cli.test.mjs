@@ -130,3 +130,10 @@ test('git with a project name answers for that project only', (t) => {
   assert.equal(one.json.projects.length, 1)
   assert.equal(all.json.projects.length, 1)
 })
+
+test('--today must be a real calendar date', (t) => {
+  const root = workspace(t, flat())
+  const r = run(root, ['list', '--today', '2030-99-99'])
+  assert.notEqual(r.code, 0)
+  assert.equal(run(root, ['list', '--today', '2030-02-28']).code, 0)
+})
