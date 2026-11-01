@@ -14,7 +14,7 @@ export const register: Register = on => {
   on('tool.call', { tool: 'Write' }, onEdit).catch(failOpen)
   on('tool.call', { tool: 'NotebookEdit' }, onNotebookEdit).catch(failOpen)
   on('tool.call', { tool: 'Bash' }, onBash).catch(failOpen)
-  on('command.run', { command: 'nextup' }, onCommand)
+  on('command.run', { command: 'backlog-resume' }, onCommand)
   on('ui.render', { component: 'Pane', requestId: PANE }, onRenderPane)
   on('ui.render', { component: 'PromptHint' }, onRenderStatus).catch(failOpen)
 }

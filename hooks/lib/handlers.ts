@@ -70,14 +70,14 @@ async function bashAround(ctx: Ctx, e: { command?: string }, next: () => Promise
 }
 
 export async function onSessionStart($: Ctx, e: unknown, next: (e: unknown) => unknown) {
-  // A skill or command of the same name may already hold /nextup: that must not stop the session.
+  // A skill or command of the same name may already hold /backlog-resume: that must not stop the session.
   try {
     await $.command.register({
-      name: 'nextup',
-      description: 'Open the backlog panel; /nextup <audit|resume|plan|do|adopt|init|split> <request> runs the session skill',
+      name: 'backlog-resume',
+      description: 'Open the backlog panel; /backlog-resume <audit|resume|plan|do|adopt|init|split> <request> runs the session skill',
     })
   } catch (err) {
-    note($, '/nextup not registered', err)
+    note($, '/backlog-resume not registered', err)
   }
   await restoreSession($)
   $.clock.every(HEARTBEAT_MS, () => {

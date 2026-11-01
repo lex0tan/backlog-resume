@@ -48,7 +48,7 @@ export const EMPTY = {
 export const GIT = { status: 'ok', projects: [{ project: 'shop', status: 'clean', branch: 'main', commit: { hash: 'abc123' }, dirty: [{ path: 'shop/a.ts' }, { path: 'shop/b.ts' }] }] }
 
 export const PANE = {
-  plugin: 'nextup', component: 'Pane', requestId: 'backlog',
+  plugin: 'backlog-resume', component: 'Pane', requestId: 'backlog',
   props: { title: 'Backlog', isFocused: true, bodyColumns: 70, placement: 'dock', scroll: { offset: 0, bodyRows: 22 }, view: {} },
 } as const
 
@@ -75,7 +75,7 @@ export function setup(on: OnT, entries: Record<string, unknown> = {}, { listed =
   on('session.id', () => ({ value: who.id }))
   on('session.cwd', () => ({ value: CWD }))
   on('session.surfaces', () => ({ value: surfaces as never }))
-  on('command.register', () => ({ value: { command: 'nextup' } }))
+  on('command.register', () => ({ value: { command: 'backlog-resume' } }))
   on('fs.read', (_, e) => {
     if (/lang[\\/]\w+\.json$/.test(e.path)) return { value: JSON.stringify({ panel: EN }) }
     if (e.path.replace(/\\/g, '/').replace(/^[A-Za-z]:/, '') === FILE) {

@@ -1,9 +1,9 @@
 {
-  "name": "nextup",
-  "owner": { "name": "nextup contributors" },
+  "name": "backlog-resume",
+  "owner": { "name": "backlog-resume contributors" },
   "plugins": [
     {
-      "name": "nextup",
+      "name": "backlog-resume",
       "source": "./",
       "description": "Resume work from a Markdown backlog: verified status, one next step, and a side panel to pick items."
     }

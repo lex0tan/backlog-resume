@@ -122,7 +122,7 @@ test('project with its own config and no index file: missing-index error suggest
   assert.equal(issue.level, 'error')
   assert.equal(issue.project, 'app')
   assert.equal(issue.file, 'app/TODO.md')
-  assert.match(issue.message, /\/nextup init/)
+  assert.match(issue.message, /\/backlog-resume init/)
 })
 
 test('project filter keeps its own issues and the duplicates and cycles that involve it', (t) => {

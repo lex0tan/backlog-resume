@@ -1,24 +1,24 @@
-<h1 align="center">nextup</h1>
+<h1 align="center">backlog-resume</h1>
 <p align="center"><strong>Resume work from a plain Markdown backlog, inside Claude Code</strong></p>
-<p align="center">Every new session starts cold: you re-explain what is done, what is blocked and what is next.<br>nextup checks your <code>TODO.md</code> against git and tells Claude where you really are, with one next step.</p>
+<p align="center">Every new session starts cold: you re-explain what is done, what is blocked and what is next.<br>backlog-resume checks your <code>TODO.md</code> against git and tells Claude where you really are, with one next step.</p>
 
 <p align="center">
-  <img src=".github/panel.gif" alt="The /nextup panel in Claude Code: agenda, projects, a blocked item with its parts, Unblock first, Waiting on you, a new item added and closed, then Work on it with the status line bar filling as Claude ticks the parts" width="900">
+  <img src=".github/panel.gif" alt="The /backlog-resume panel in Claude Code: agenda, projects, a blocked item with its parts, Unblock first, Waiting on you, a new item added and closed, then Work on it with the status line bar filling as Claude ticks the parts" width="900">
 </p>
 
 ```
-/plugin marketplace add lex0tan/nextup
-/plugin install nextup@nextup
+/plugin marketplace add lex0tan/backlog-resume
+/plugin install backlog-resume@backlog-resume
 ```
 
 <p align="center">
-  <a href="https://github.com/lex0tan/nextup/actions/workflows/test.yml"><img src="https://github.com/lex0tan/nextup/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/lex0tan/backlog-resume/actions/workflows/test.yml"><img src="https://github.com/lex0tan/backlog-resume/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-brightgreen" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A520-blue" alt="Node 20 or newer">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey" alt="macOS, Linux, Windows">
 </p>
 
-> **nextup** is a Claude Code plugin (command: `/nextup`) that reads the `TODO.md` files you already have,
+> **backlog-resume** is a Claude Code plugin (command: `/backlog-resume`) that reads the `TODO.md` files you already have,
 > checks them against git and the repository, and tells Claude where you really are.
 > No server, no account, no database: the backlog lives only in your files.
 
@@ -28,7 +28,7 @@ A new session starts cold. You re-explain what is done, what is blocked and what
 guesses from stale notes. Notes drift: items are finished but still listed, "next" points at something already
 shipped, two sessions edit the same item.
 
-nextup fixes the starting point, not the way you write:
+backlog-resume fixes the starting point, not the way you write:
 
 1. **It verifies before it tells.** Each item is checked against git (commits that cite its ID, how long it has been
    untouched) and the files it mentions. What it cannot verify is reported as *not verifiable*, never as a to-do.
@@ -46,7 +46,7 @@ nextup fixes the starting point, not the way you write:
 - 🎨 **Live status line**: the item in progress beside the prompt, in colour, with a bar of its parts that fills as Claude ticks them and the time spent
 - 🔒 **Multi-session safe**: per-session active item, heartbeat, orphan detection, resume or release; backlog files written atomically under a per-file lock
 - 🛡️ **Guards**: the session reads only its item's files, backlog edits are re-checked, commits are reminded to cite the item ID
-- 🔁 **Adopts what you have**: `/nextup adopt` proposes how to bring existing notes into the model, nothing is written until you agree, and a file git cannot restore is copied aside first
+- 🔁 **Adopts what you have**: `/backlog-resume adopt` proposes how to bring existing notes into the model, nothing is written until you agree, and a file git cannot restore is copied aside first
 - 🌍 **Languages**: English and Italian included, add yours by copying one JSON file
 - 🧩 **Scriptable**: the script behind it is a plain Node CLI that prints JSON and uses only the standard library
 
@@ -56,29 +56,29 @@ Requirements: Claude Code (terminal, desktop app or IDE extension) and Node.js 2
 without it item ages fall back to file times and commit checks are skipped.
 
 ```
-/plugin marketplace add lex0tan/nextup
-/plugin install nextup@nextup
+/plugin marketplace add lex0tan/backlog-resume
+/plugin install backlog-resume@backlog-resume
 ```
 
 or from a shell:
 
 ```
-claude plugin marketplace add lex0tan/nextup
-claude plugin install nextup@nextup
+claude plugin marketplace add lex0tan/backlog-resume
+claude plugin install backlog-resume@backlog-resume
 ```
 
 The desktop app installs it from the same marketplace.
 
 ## Quick start
 
-1. In your project folder run `/nextup init`. It creates a `TODO.md` (and a `.backlog.json`) in the model below.
-   Already have notes? `/nextup adopt` finds backlog-like files and proposes how to bring them into the model.
-2. Run `/nextup` to open the panel, or ask in plain words:
+1. In your project folder run `/backlog-resume init`. It creates a `TODO.md` (and a `.backlog.json`) in the model below.
+   Already have notes? `/backlog-resume adopt` finds backlog-like files and proposes how to bring them into the model.
+2. Run `/backlog-resume` to open the panel, or ask in plain words:
 
    ```
-   /nextup resume the website
-   /nextup plan API
-   /nextup do API-002
+   /backlog-resume resume the website
+   /backlog-resume plan API
+   /backlog-resume do API-002
    ```
 
 3. Claude answers with the verified state and one next step. When you start an item, it becomes the session's
@@ -88,8 +88,8 @@ There is a small workspace to try it on in [`examples/demo`](examples/demo).
 
 ## Strongly recommended: CodeGraph
 
-We strongly recommend using nextup together with [CodeGraph](https://github.com/colbymchenry/codegraph).
-The two cover the two halves of a cold start: nextup tells Claude *what* to work on and loads only that
+We strongly recommend using backlog-resume together with [CodeGraph](https://github.com/colbymchenry/codegraph).
+The two cover the two halves of a cold start: backlog-resume tells Claude *what* to work on and loads only that
 item's backlog; CodeGraph lets Claude read only the code that item touches (the relevant symbols and the call paths
 between them) instead of whole files. Sessions start faster and use far fewer tokens.
 
@@ -98,7 +98,7 @@ npm install -g @colbymchenry/codegraph
 codegraph init    # in each project, builds the .codegraph/ index
 ```
 
-CodeGraph is a separate project with its own license; nextup works without it.
+CodeGraph is a separate project with its own license; backlog-resume works without it.
 
 ## How it works
 
@@ -147,7 +147,7 @@ A backlog grows in three steps; every step is plain Markdown and the plugin read
 
 Rules the plugin relies on:
 
-- **A finished item is removed.** History lives in `git log`; the file only holds what is open. `/nextup` removes an item with the `done` command and moves `Next:` along. With `archive` set, `done` also keeps the item in a file per month.
+- **A finished item is removed.** History lives in `git log`; the file only holds what is open. `/backlog-resume` removes an item with the `done` command and moves `Next:` along. With `archive` set, `done` also keeps the item in a file per month.
 - **IDs** are uppercase words and a number of three or more digits: `SHOP-002`, `SHOP-API-001`, `X-1000`.
 - **IDs are unique in the workspace.** Use `project:ID` to name one when in doubt. `split` renumbers a flat backlog into workstreams (`SHOP-001` becomes `SHOP-API-001`) and keeps the old ID in a `Was:` line so old commits still match.
 - **Types** go in backticks after the ID: `[code]`, `[content]`, `[decision]`, `[blocked]`… Any word works; `decision` and `blocked` have a meaning, see below.
@@ -159,7 +159,7 @@ Rules the plugin relies on:
 
 ## Commands
 
-`/nextup` opens the panel. `/nextup <mode> <request>` runs the `session` skill:
+`/backlog-resume` opens the panel. `/backlog-resume <mode> <request>` runs the `session` skill:
 
 | Mode | What it does |
 |---|---|
@@ -235,9 +235,9 @@ To add a language, copy `lang/en.json` to `lang/<code>.json` and translate the k
 
 ## The panel
 
-`/nextup` shows the agenda (items with a `From:` date), then projects → areas → types → items. From an item you can read its detail, see what blocks it and what it unblocks, work on it, or mark it done. **Unblock first** lists the items that hold up most others, **New item** appends one, and a search box finds items by ID or words. **Waiting on you** lists decisions and your own steps.
+`/backlog-resume` shows the agenda (items with a `From:` date), then projects → areas → types → items. From an item you can read its detail, see what blocks it and what it unblocks, work on it, or mark it done. **Unblock first** lists the items that hold up most others, **New item** appends one, and a search box finds items by ID or words. **Waiting on you** lists decisions and your own steps.
 
-**Work on it** sends Claude the whole item in one prompt and makes it this session's active item. When the model removes it from the file the session closes it and reports the files left uncommitted; the workspace view counts the items closed today. **Stop working on it** lets go of the item without closing it, and an item whose file disappears is let go on its own. `/nextup do <ID>` takes the item the same way.
+**Work on it** sends Claude the whole item in one prompt and makes it this session's active item. When the model removes it from the file the session closes it and reports the files left uncommitted; the workspace view counts the items closed today. **Stop working on it** lets go of the item without closing it, and an item whose file disappears is let go on its own. `/backlog-resume do <ID>` takes the item the same way.
 
 **Keys.** The arrows (or Tab) move the highlight and Enter opens a row or presses a button; Esc closes the panel. Every row has a shortcut shown before it: a digit for projects, areas, types and items, a letter for the agenda. Buttons have one too:
 
@@ -261,7 +261,7 @@ The terminal and the desktop app draw it in colour after the line Claude Code an
 
 ### Several sessions
 
-Each session keeps its active item in the plugin's store with a heartbeat every minute. An item another live session holds is marked *in progress elsewhere* and cannot be taken, from the panel or with `/nextup do`; the modes also tell the skill which items to leave alone. Items are matched by file, so it does not matter which folder each session started from. If a session goes silent for `lockMinutes` its item becomes an **orphan**: the next session in the same workspace is told, and the panel offers **Resume** or **Release**. Orphans are never taken automatically. A `/clear` may give the session a new ID: the item then shows as an orphan of your own session, and **Resume** takes it back (it is offered while the session holds no item of its own). Entries of sessions silent for a month are deleted when a session starts.
+Each session keeps its active item in the plugin's store with a heartbeat every minute. An item another live session holds is marked *in progress elsewhere* and cannot be taken, from the panel or with `/backlog-resume do`; the modes also tell the skill which items to leave alone. Items are matched by file, so it does not matter which folder each session started from. If a session goes silent for `lockMinutes` its item becomes an **orphan**: the next session in the same workspace is told, and the panel offers **Resume** or **Release**. Orphans are never taken automatically. A `/clear` may give the session a new ID: the item then shows as an orphan of your own session, and **Resume** takes it back (it is offered while the session holds no item of its own). Entries of sessions silent for a month are deleted when a session starts.
 
 Writes are safe across sessions too. The script is the only thing that writes backlog files: it writes to a temporary file and renames it over the old one, and `done` and `add` hold a lock on the file while they read and rewrite it (a lock older than 30 seconds is taken over). Two sessions closing or adding items in the same file never lose a change or get the same ID.
 
@@ -274,11 +274,11 @@ Writes are safe across sessions too. The script is the only thing that writes ba
 
 - **Programs it runs.** `node` runs the plugin's own `scripts/backlog.mjs` (reads and writes your backlog files, no network), and `git` runs read-only queries (`log`, `blame`, `status`, `ls-files`, `branch`, `rev-parse`) on the current workspace to date items and check commits. Nothing else is started.
 - **What it sends.** Nothing leaves your machine: no network calls, no telemetry, no account. It reads no credentials or environment secrets.
-- **Prompts it submits.** `/nextup <mode> <request>` and the panel's *Work on it* submit one prompt as if you had typed it: the mode's instructions, the item's text and the names of its backlog files. Nothing else is added to your prompts; the only other text it adds to the session is the check results after a backlog edit and the commit reminder.
+- **Prompts it submits.** `/backlog-resume <mode> <request>` and the panel's *Work on it* submit one prompt as if you had typed it: the mode's instructions, the item's text and the names of its backlog files. Nothing else is added to your prompts; the only other text it adds to the session is the check results after a backlog edit and the commit reminder.
 - **What it stores.** Session state (active item, heartbeat, a count of closed items) in the plugin's own store on your machine.
 - **What it reads.** Your backlog files (`TODO.md` and the indexes it links), the plugin's own `lang/*.json`, and the git history of the current workspace. This is the only local data it reads, and none of it is sent anywhere: it goes into the item shown in the panel and, when you press *Work on it*, into the prompt above.
 - **The conversation.** The `turn.complete` hook only checks whether the active item's line is still in its file; it does not read, store or send the conversation text.
-- **Credentials.** None are read. The `key` and `/^[a-z]{2,3}.../` expressions in the code are store keys (`nextup.active`...) and a check that a language tag such as `en` or `it` is a plain code before it becomes a file name; the `git` command line is built from the workspace folder and a fixed list of read-only subcommands, never from user text or environment secrets.
+- **Credentials.** None are read. The `key` and `/^[a-z]{2,3}.../` expressions in the code are store keys (`backlog-resume.active`...) and a check that a language tag such as `en` or `it` is a plain code before it becomes a file name; the `git` command line is built from the workspace folder and a fixed list of read-only subcommands, never from user text or environment secrets.
 - **The demo GIF.** `.github/panel.gif` is a screen recording used only by this README. It contains no script, and nothing in the plugin downloads or executes it.
 
 ## Guards
