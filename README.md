@@ -86,6 +86,20 @@ The desktop app installs it from the same marketplace.
 
 There is a small workspace to try it on in [`examples/demo`](examples/demo).
 
+## Strongly recommended: CodeGraph
+
+We strongly recommend using claude-backlog together with [CodeGraph](https://github.com/colbymchenry/codegraph).
+The two cover the two halves of a cold start: claude-backlog tells Claude *what* to work on and loads only that
+item's backlog; CodeGraph lets Claude read only the code that item touches (the relevant symbols and the call paths
+between them) instead of whole files. Sessions start faster and use far fewer tokens.
+
+```
+npm install -g @colbymchenry/codegraph
+codegraph init    # in each project, builds the .codegraph/ index
+```
+
+CodeGraph is a separate project with its own license; claude-backlog works without it.
+
 ## How it works
 
 ```
