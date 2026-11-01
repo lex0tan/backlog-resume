@@ -100,14 +100,14 @@ function paintStatus(ctx: Ctx, e: Parameters<typeof renderStatus>[1], next: unkn
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    // A skill or command of the same name may already hold /backlogs: that must not stop the session.
+    // A skill or command of the same name may already hold /nextup: that must not stop the session.
     try {
       await $.command.register({
-        name: 'backlogs',
-        description: 'Open the backlog panel; /backlogs <audit|resume|plan|do|adopt|init|split> <request> runs the session skill',
+        name: 'nextup',
+        description: 'Open the backlog panel; /nextup <audit|resume|plan|do|adopt|init|split> <request> runs the session skill',
       })
     } catch (err) {
-      $.ui.log(`backlog: /backlogs not registered: ${err instanceof Error ? err.message : String(err)}`)
+      $.ui.log(`backlog: /nextup not registered: ${err instanceof Error ? err.message : String(err)}`)
     }
     await restoreSession($)
     $.clock.every(HEARTBEAT_MS, () => {
@@ -147,7 +147,7 @@ export const register: Register = on => {
 
   on('tool.call', { tool: 'Bash' }, ($, e, next) => bashAround($, e, () => next(e))).catch(($, e, next) => next(e))
 
-  on('command.run', { command: 'backlogs' }, async ($, e) => {
+  on('command.run', { command: 'nextup' }, async ($, e) => {
     const args = e.args.trim()
     const first = args.split(/\s+/)[0] ?? ''
     const mode = MODES.find(m => m === first.toLowerCase())

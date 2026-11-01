@@ -1,4 +1,4 @@
-// `/backlogs <mode> <request>`: the prompt that runs the session skill, with the locks of the other sessions in front of it.
+// `/nextup <mode> <request>`: the prompt that runs the session skill, with the locks of the other sessions in front of it.
 
 import type { EngineInterface } from 'claude-code'
 
@@ -16,7 +16,7 @@ export type ModeRun = { text: string } | { refused: string }
  */
 export async function modeRun($: EngineInterface, mode: string, request: string): Promise<ModeRun> {
   const { board, strings } = await load($, '')
-  const base = `Use the backlogs:session skill. Mode: ${mode}. Request: ${request}`
+  const base = `Use the nextup:session skill. Mode: ${mode}. Request: ${request}`
   if (board.error) return { text: base }
   const held = await locks($, Date.now(), board.lockMinutes * 60_000, board.root)
   if (mode === 'do') {

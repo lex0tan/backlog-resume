@@ -16,7 +16,7 @@ export const EN: Record<string, string> = {
   "orphan": "Orphaned",
   "doneToday": "Done today",
   "noItems": "No open items",
-  "inProgress": "In progress: {id}. Run /backlogs:session to resume or close it.",
+  "inProgress": "In progress: {id}. Run /nextup:session to resume or close it.",
   "added": "Added {id}",
   "notAdded": "Not added: {reason}",
   "removed": "{id} removed",

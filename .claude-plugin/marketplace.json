@@ -1,9 +1,9 @@
 {
-  "name": "claude-backlog",
-  "owner": { "name": "claude-backlog contributors" },
+  "name": "nextup",
+  "owner": { "name": "nextup contributors" },
   "plugins": [
     {
-      "name": "backlogs",
+      "name": "nextup",
       "source": "./",
       "description": "Resume work from a Markdown backlog: verified status, one next step, and a side panel to pick items."
     }

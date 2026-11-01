@@ -22,8 +22,8 @@ and versions follow the release date (`YEAR.MONTH.DAY`, tag `vYEAR.MONTH.DAY`), 
 - Dependency graph with cycle detection and the chain that closes each cycle.
 - Consistency check: duplicate IDs, dangling links, missing criteria, stale items, overview drift, missing indexes.
 - `split` renumbers a flat backlog into workstreams and keeps the old ID in `Was:`.
-- `session` skill (`/backlogs:session`) with the modes audit, resume, plan, do, adopt, init and split.
-- `/backlogs` side panel: agenda, projects, areas, types, items, search, unblock-first list, new item, done with confirmation, and a separate "Waiting on you" view.
+- `session` skill (`/nextup:session`) with the modes audit, resume, plan, do, adopt, init and split.
+- `/nextup` side panel: agenda, projects, areas, types, items, search, unblock-first list, new item, done with confirmation, and a separate "Waiting on you" view.
 - Active item per session with a status line, end-of-turn release and a "done today" count.
 - Locks between sessions with a heartbeat; orphaned items are proposed with Resume / Release and never taken automatically.
 - Guards: read guard while an item is active, `check --fast` after an edit of a backlog file, and a commit reminder when the active item's ID is missing.
