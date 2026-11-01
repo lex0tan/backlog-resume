@@ -23,11 +23,7 @@ function ioOf($: EngineInterface): EngineInterface {
       exists: (path: string) => $.fs.exists(path),
       read: (path: string, init: { as: 'text' }) => $.fs.read(path, init),
     },
-    plugin: {
-      get root() {
-        return $.plugin.root
-      },
-    },
+    plugin: { root: $.plugin.root },
     process: {
       run: (argv: readonly string[], init?: { timeoutMs?: number }) => $.process.run(argv, init),
     },
