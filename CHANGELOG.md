@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - One definition of an item ID (`scripts/lib/ids.mjs`): a number of three or more digits everywhere, so `X-1000` is read the same way by every command.
 
 ### Added
+- The status line of the item in progress is drawn in colour beside the prompt hint (terminal and desktop app): item in yellow, a green bar of the parts done, the done line in green and uncommitted files in yellow. It moves after every edit and command and once a minute, not only at the end of a turn, and shows the parts from the moment the item is taken. Other surfaces keep the plain status line.
 - Optional archive of closed items (`archive` in `.backlog.json`): `done` keeps each closed item, with its sub-lines and the closing date, in `<archive>/YYYY-MM.md`; `add` never reuses an archived ID.
 - Plugin manifest and marketplace entry; standard-library Node script (`scripts/backlog.mjs`) that prints JSON.
 - Backlog model in Markdown: flat file, indexed workstreams, nested subprojects; items with types, `Done when:`, `Depends on:`, `Blocks:`, `From:`, `Was:` and parts (`User:` steps).

@@ -1,6 +1,6 @@
 // Pure functions over the board: no engine, no I/O. The panel and the session logic build on them.
 
-import type { Active, Finished, Item, Parts, Strings, View, Workstream } from '../../types'
+import type { Active, Finished, Item, Parts, Segment, Strings, View, Workstream } from '../../types'
 import { t } from './strings'
 
 type ListedItem = Partial<Item> & { id: string; project: string; type: string; text: string }
@@ -210,14 +210,37 @@ export function bar(parts: Parts, width: number): [string, string] {
   return ['█'.repeat(filled), '░'.repeat(width - filled)]
 }
 
+const SEP: Segment = { text: ' · ', tone: 'muted' }
+// Groups of segments joined by ` · `; empty segments and empty groups are left out.
+const joined = (groups: Segment[][]): Segment[] =>
+  groups.map(g => g.filter(s => s.text)).filter(g => g.length).flatMap((g, n) => (n ? [SEP, ...g] : g))
+export const plainText = (segments: readonly Segment[]) => segments.map(s => s.text).join('')
+
+/** The status line of the item in progress: item, bar of the parts done, time spent. */
+export function statusSegments(a: Pick<Active, 'id'> & Partial<Pick<Active, 'startedAt'>>, parts: Parts | null, now: number, strings: Strings = {}): Segment[] {
+  const [done, left] = parts?.total ? bar(parts, 8) : ['', '']
+  return joined([
+    [{ text: `▶ ${a.id}`, tone: 'item' }],
+    parts?.total ? [{ text: done, tone: 'barDone' }, { text: left, tone: 'barLeft' }, { text: ` ${parts.done}/${parts.total}` }] : [],
+    a.startedAt !== undefined ? [{ text: duration(now - a.startedAt, strings), tone: 'muted' }] : [],
+  ])
+}
+
 export function statusText(a: Pick<Active, 'id'> & Partial<Pick<Active, 'startedAt'>>, parts: Parts | null, now: number, strings: Strings = {}): string {
-  return [`▶ ${a.id}`, parts?.total ? `${bar(parts, 8).join('')} ${parts.done}/${parts.total}` : '', a.startedAt !== undefined ? duration(now - a.startedAt, strings) : '']
-    .filter(Boolean).join(' · ')
+  return plainText(statusSegments(a, parts, now, strings))
+}
+
+/** The status line once the item is closed: done, time spent, files left uncommitted. */
+export function finishedSegments(f: Finished, strings: Strings): Segment[] {
+  return joined([
+    [{ text: t(strings, 'finishedLine', { id: f.id }), tone: 'done' }],
+    f.minutes !== null ? [{ text: duration(f.minutes * 60_000, strings), tone: 'muted' }] : [],
+    f.pending ? [{ text: t(strings, 'finishedPending', { n: f.pending }), tone: 'warn' }] : [],
+  ])
 }
 
 export function finishedText(f: Finished, strings: Strings): string {
-  return [t(strings, 'finishedLine', { id: f.id }), f.minutes !== null ? duration(f.minutes * 60_000, strings) : '', f.pending ? t(strings, 'finishedPending', { n: f.pending }) : '']
-    .filter(Boolean).join(' · ')
+  return plainText(finishedSegments(f, strings))
 }
 
 // Files changed since the item started: they were not among the local changes when work began.

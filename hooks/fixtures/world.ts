@@ -61,7 +61,7 @@ export const entry = (sessionId: string, extra: Record<string, unknown> = {}) =>
 export const ago = (min: number) => Date.now() - min * MIN
 
 /** Two simulated sessions share the store; `who.id` says which one the next call comes from. */
-export function setup(on: OnT, entries: Record<string, unknown> = {}, { listed = LISTED as object } = {}) {
+export function setup(on: OnT, entries: Record<string, unknown> = {}, { listed = LISTED as object, surfaces = ['terminal'] as string[] } = {}) {
   const who = { id: 'A' }
   const store = new Map<string, unknown>(Object.entries(entries))
   const seen = {
@@ -74,6 +74,7 @@ export function setup(on: OnT, entries: Record<string, unknown> = {}, { listed =
   on('store.keys', () => ({ value: [...store.keys()] }))
   on('session.id', () => ({ value: who.id }))
   on('session.cwd', () => ({ value: CWD }))
+  on('session.surfaces', () => ({ value: surfaces as never }))
   on('command.register', () => ({ value: { command: 'backlog' } }))
   on('fs.read', (_, e) => {
     if (/lang[\\/]\w+\.json$/.test(e.path)) return { value: JSON.stringify({ panel: EN }) }
@@ -97,5 +98,7 @@ export function setup(on: OnT, entries: Record<string, unknown> = {}, { listed =
   on('prompt.submit', (_, e) => { seen.prompts.push(e.text); return { text: e.text } })
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('turn.complete', () => ({ text: '' }))
+  // The engine's own prompt hint: the line the plugin draws beside.
+  on('ui.render', (_, e) => ({ type: 'Text', props: { dimColor: true }, children: [String((e.props as { hint?: string }).hint ?? '')] }) as never)
   return { who, seen, store, clock: mock.clock(on) }
 }

@@ -31,6 +31,10 @@ export type Item = {
   lockedBy: string | null
 }
 export type Parts = { done: number; total: number }
+// The status line in pieces, each with what it says (the item, the bar, a warning...): the terminal and the desktop app
+// colour each tone, other surfaces get the joined text.
+export type Tone = 'item' | 'barDone' | 'barLeft' | 'done' | 'warn' | 'muted'
+export type Segment = { text: string; tone?: Tone }
 export type Workstream = { id: string; label: string; area: string; project: string }
 export type BoardProject = { rel: string; name: string; git: string | null }
 export type Board = {
@@ -93,6 +97,6 @@ export type Strings = Record<string, string>
 
 declare module 'claude-code' {
   interface PluginState {
-    backlog: { board: Board | null; view: View; active: Active | null; finished: Finished | null; strings: Strings | null; files: FileSet | null }
+    backlog: { board: Board | null; view: View; active: Active | null; finished: Finished | null; line: Segment[] | null; strings: Strings | null; files: FileSet | null }
   }
 }

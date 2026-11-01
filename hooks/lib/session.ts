@@ -7,8 +7,8 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface } from 'claude-code'
 
-import type { Active, Board, Closed, Finished, Item } from '../../types'
-import { finishedText, newlyDirty, partsOf, statusText, stillOpen } from './board'
+import type { Active, Board, Closed, Finished, Item, Parts, Segment } from '../../types'
+import { finishedSegments, finishedText, newlyDirty, partsOf, plainText, statusSegments, stillOpen } from './board'
 import { normPath, relativeTo } from './paths'
 import { runScript } from './script'
 import { loadStrings, t } from './strings'
@@ -23,6 +23,8 @@ export const STORE_KEEP_MS = 30 * 24 * 3600_000
 
 export const active = atom({ plugin: 'backlog', key: 'active' } as const, null)
 export const finished = atom({ plugin: 'backlog', key: 'finished' } as const, null)
+/** The status line, drawn beside the prompt hint by hooks/status.tsx. */
+export const line = atom({ plugin: 'backlog', key: 'line' } as const, null)
 
 export type Locks = {
   /** The entry of this session. */
@@ -77,9 +79,34 @@ export async function mineOf($: EngineInterface): Promise<Active | null> {
   return isActive(value) ? value : null
 }
 
+// Surfaces that draw the prompt hint, where the status line is drawn in colour beside it (hooks/status.tsx).
+const HINT_SURFACES: readonly string[] = ['terminal', 'desktop']
+
+/** The status line as last set, for the drawing (a read there redraws it on every change). */
+export async function statusLine($: EngineInterface) {
+  return read($, line)
+}
+
+/** Sets the status line; null clears it. Surfaces without the prompt hint get it as the host's plain status line. */
+async function showLine($: EngineInterface, segments: Segment[] | null) {
+  await update($, line, () => segments)
+  const plainOnly = (await $.session.surfaces()).some(s => !HINT_SURFACES.includes(s))
+  $.ui.status(segments && plainOnly ? plainText(segments) : undefined)
+}
+
 // Status line: item, bar of the parts done, time.
-async function showProgress($: EngineInterface, value: Active | null, parts: ReturnType<typeof partsOf> | null, strings: Record<string, string> = {}) {
-  $.ui.status(value ? statusText(value, parts, Date.now(), strings) : undefined)
+async function showProgress($: EngineInterface, value: Active | null, parts: Parts | null, strings: Record<string, string> = {}) {
+  await showLine($, value ? statusSegments(value, parts, Date.now(), strings) : null)
+}
+
+/** The parts of the item as its file has them now; null when the file cannot be read. */
+async function partsNow($: EngineInterface, a: Active): Promise<Parts | null> {
+  try {
+    return partsOf((await $.fs.read(a.file, { as: 'text' })) as string, a.id)
+  } catch {
+    // refreshActive reports and handles an unreadable file; here the line only goes without its bar.
+    return null
+  }
 }
 
 async function setMine($: EngineInterface, value: Active | null) {
@@ -92,13 +119,13 @@ async function setMine($: EngineInterface, value: Active | null) {
 export async function clearFinished($: EngineInterface) {
   await update($, finished, () => null)
   await $.store.delete(`${FINISHED}${await $.session.id()}`)
-  $.ui.status(undefined)
+  await showLine($, null)
 }
 
 async function setFinished($: EngineInterface, value: Finished, strings: Record<string, string>) {
   await update($, finished, () => value)
   await $.store.set(`${FINISHED}${await $.session.id()}`, value)
-  $.ui.status(finishedText(value, strings))
+  await showLine($, finishedSegments(value, strings))
 }
 
 /** This session starts the item. Null when another live session already holds it. */
@@ -111,14 +138,15 @@ export async function takeItem($: EngineInterface, item: Item, board: Board, now
   }
   if (await read($, finished)) await clearFinished($)
   await setMine($, value)
-  await showProgress($, value, null, await loadStrings($, board.language))
+  const parts: Parts = { done: item.parts.filter(p => p.done).length, total: item.parts.length }
+  await showProgress($, value, parts, await loadStrings($, board.language))
   return value
 }
 
 /** This session lets go of its item. */
 export async function releaseItem($: EngineInterface) {
   await setMine($, null)
-  $.ui.status(undefined)
+  await showLine($, null)
 }
 
 /** Says this session is alive. */
@@ -136,7 +164,7 @@ export async function adoptOrphan($: EngineInterface, orphan: Active, now = Date
   await $.store.delete(`${ACTIVE}${orphan.sessionId}`)
   const value: Active = { ...orphan, sessionId: await $.session.id(), cwd: await $.session.cwd(), heartbeatAt: now }
   await setMine($, value)
-  await showProgress($, value, null, await loadStrings($, value.language))
+  await showProgress($, value, await partsNow($, value), await loadStrings($, value.language))
   return value
 }
 
@@ -154,7 +182,7 @@ export async function closedToday($: EngineInterface, now = Date.now()): Promise
 
 type GitOut = { status: string; projects?: { dirty?: { path: string }[] }[] }
 
-/** At the end of a turn: when the model removed the item from its file the item is freed and recorded as closed, otherwise the status line is refreshed. */
+/** After an edit, at the end of a turn and on the heartbeat: when the model removed the item from its file the item is freed and recorded as closed, otherwise the status line is refreshed. */
 export async function refreshActive($: EngineInterface, now = Date.now()) {
   const a = await mineOf($)
   if (!a) return
@@ -211,7 +239,7 @@ export async function restore($: EngineInterface, now = Date.now()) {
   if (own) {
     await update($, active, () => own)
     const strings = await loadStrings($, own.language)
-    await showProgress($, own, null, strings)
+    await showProgress($, own, await partsNow($, own), strings)
     $.ui.toast(t(strings, 'inProgress', { id: labelOf(own) }), { timeoutMs: 6000 })
   } else {
     const last = await $.store.get(`${FINISHED}${await $.session.id()}`)

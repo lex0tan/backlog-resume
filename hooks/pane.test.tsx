@@ -39,6 +39,7 @@ function stubs(on: OnT, language = 'en') {
   mock.store(on)
   on('session.id', () => ({ value: 'S1' }))
   on('ui.status', () => ({ value: undefined }))
+  on('session.surfaces', () => ({ value: ['terminal'] }))
   on('command.register', () => ({ value: { command: 'backlog' } }))
   on('session.cwd', () => ({ value: 'C:\\Users\\x\\My Projects\\ws' }))
   on('fs.read', (_, e) => {

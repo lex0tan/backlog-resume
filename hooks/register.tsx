@@ -6,6 +6,7 @@ import { modeRun } from './lib/modes'
 import { HEARTBEAT_MS, heartbeat, mineOf, refreshActive, restore } from './lib/session'
 import { t } from './lib/strings'
 import { renderPane } from './pane'
+import { renderStatus } from './status'
 
 // Wiring only: events -> modules under hooks/lib and hooks/pane.tsx.
 const MODES = ['audit', 'resume', 'plan', 'do', 'adopt', 'init', 'split']
@@ -13,6 +14,10 @@ const MODES = ['audit', 'resume', 'plan', 'do', 'adopt', 'init', 'split']
 const GIT_COMMIT = /\bgit\b[^|;&\n]*\bcommit\b/
 // A command that runs the plugin's script (split, adopt write...) may create or remove backlog files.
 const RUNS_SCRIPT = /backlog\.mjs/
+
+// A failed refresh of the status line never fails the tool call that triggered it.
+const refreshAfterTool = ($: Parameters<typeof refreshActive>[0]) =>
+  refreshActive($).catch(err => $.ui.log(`backlog: status refresh failed: ${err instanceof Error ? err.message : String(err)}`))
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -29,6 +34,8 @@ export const register: Register = on => {
     await restore($).catch(err => $.ui.log(`backlog: restore failed: ${err instanceof Error ? err.message : String(err)}`))
     $.clock.every(HEARTBEAT_MS, () => {
       heartbeat($).catch(err => $.ui.log(`backlog: heartbeat failed: ${err instanceof Error ? err.message : String(err)}`))
+      // The time spent moves on the status line, and an item closed outside any tool call (by hand, from another tool) is seen.
+      refreshActive($).catch(err => $.ui.log(`backlog: status refresh failed: ${err instanceof Error ? err.message : String(err)}`))
     })
     return next(e)
   })
@@ -57,8 +64,9 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   // Check after an edit of a backlog file: new issues go back to the model as context, never as a refusal.
-  on('tool.call', { tool: 'Edit' }, ($, e, next) => guardedEdit($, e.file_path, () => next(e))).catch(($, e, next) => next(e))
-  on('tool.call', { tool: 'Write' }, ($, e, next) => guardedEdit($, e.file_path, () => next(e))).catch(($, e, next) => next(e))
+  // The status line follows the edit at once: a part ticked moves the bar, the item removed closes it.
+  on('tool.call', { tool: 'Edit' }, ($, e, next) => guardedEdit($, e.file_path, () => next(e)).finally(() => refreshAfterTool($))).catch(($, e, next) => next(e))
+  on('tool.call', { tool: 'Write' }, ($, e, next) => guardedEdit($, e.file_path, () => next(e)).finally(() => refreshAfterTool($))).catch(($, e, next) => next(e))
   on('tool.call', { tool: 'NotebookEdit' }, ($, e, next) => guardedEdit($, e.notebook_path, () => next(e))).catch(($, e, next) => next(e))
 
   // Commit reminder: with an active item, a commit that does not cite its ID is pointed out afterwards.
@@ -68,6 +76,8 @@ export const register: Register = on => {
     const before = own ? await headOf($, own) : null
     const result = await next(e)
     if (RUNS_SCRIPT.test(command)) await forgetFiles($)
+    // A command may change the item's file too (a script, a checkout, a commit that closes it).
+    await refreshAfterTool($)
     const text = own && result.deny === undefined && result.result !== undefined ? await commitWarning($, own, before) : null
     return text && result.deny === undefined ? { ...result, context: [...(result.context ?? []), text] } : result
   }).catch(($, e, next) => next(e))
@@ -92,4 +102,5 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, ($, e) => renderPane($, e))
+  on('ui.render', { component: 'PromptHint' }, ($, e, next) => renderStatus($, e, next as never)).catch(($, e, next) => next(e))
 }

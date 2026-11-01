@@ -3,6 +3,12 @@ import type { TestBody } from 'claude-code/testing'
 
 import { CWD, FILE, MIN, PANE, TURN, ago, entry, setup } from './fixtures/world'
 
+// The colour of the innermost Text drawing exactly this text (find matches the outer Texts that contain it too).
+const colorOf = async (ui: { findAll: (q: { type: string }) => Promise<{ text: string; props: Record<string, unknown> }[]> }, text: string) =>
+  (await ui.findAll({ type: 'Text' })).filter(f => f.text === text).at(-1)?.props.color
+
+const HINT = { plugin: 'backlog', component: 'PromptHint', props: { hint: '? for shortcuts', isDraft: false, isWorking: false } } as const
+
 type $T = Parameters<TestBody>[0]
 
 const open = ($: $T) => $.command.run({ command: 'backlog', args: '' } as never)
@@ -103,7 +109,42 @@ test('at the end of a turn an item the model removed from its file is freed and 
   expect(closed.map(c => c.id)).toEqual(['API-002'])
   expect(closed[0]!.minutes).toBe(7)
   expect(seen.toasts.at(-1)).toBe('✓ API-002 done · 7 min · ⚠ 1 uncommitted')
-  expect(seen.statuses.at(-1)).toBe('✓ API-002 done · 7 min · ⚠ 1 uncommitted')
+  const ui = await $.ui.mount({ ...HINT, surface: 'terminal' })
+  expect(await colorOf(ui, '✓ API-002 done')).toBe('success')
+  expect(await colorOf(ui, '⚠ 1 uncommitted')).toBe('warning')
+  await ui.unmount()
+})
+
+test('the status line sits beside the prompt hint in colour, the bar following the parts as the model ticks them', async ($, on) => {
+  const { seen } = setup(on, { 'active:A': entry('A', { startedAt: ago(3) }) })
+  seen.file = '- [ ] [API-002] `[code]` text API-002\n  - [x] one\n  - [ ] two\n  - [ ] three\n  - [ ] four\n'
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  await $.session.start({ cwd: CWD, surface: 'terminal', isInteractive: true })
+  const ui = await $.ui.mount({ ...HINT, surface: 'terminal' })
+  expect(await colorOf(ui, '▶ API-002')).toBe('warning')
+  expect(await colorOf(ui, '██')).toBe('success')
+  expect((await ui.find({ type: 'Text', text: ' 1/4' }))?.text).toBeDefined()
+  // An edit in the middle of the turn moves the bar, without waiting for the turn to end.
+  seen.file = seen.file.replace('[ ] two', '[x] two')
+  await $.tool.call({ tool: 'Edit', file_path: FILE, old_string: '[ ] two', new_string: '[x] two' } as never)
+  expect(await colorOf(ui, '████')).toBe('success')
+  expect((await ui.find({ type: 'Text', text: ' 2/4' }))?.text).toBeDefined()
+  // The terminal draws it, so no plain status line on top.
+  expect(seen.statuses.filter(Boolean)).toEqual([])
+  await ui.unmount()
+})
+
+test('a surface without the prompt hint gets the plain status line', async ($, on) => {
+  const { seen } = setup(on, { 'active:A': entry('A', { startedAt: ago(3) }) }, { surfaces: ['terminal', 'mobile'] })
+  await $.session.start({ cwd: CWD, surface: 'terminal', isInteractive: true })
+  expect(seen.statuses.at(-1)).toBe('▶ API-002 · 3 min')
+})
+
+test('without an item in progress or a done line the prompt hint is the engine own', async ($, on) => {
+  setup(on)
+  const ui = await $.ui.mount({ ...HINT, surface: 'terminal' })
+  expect(await ui.find({ type: 'Text', text: /backlog/ })).toBeUndefined()
+  await ui.unmount()
 })
 
 test('an item waiting on the user leaves the lists of work and shows its step in the waiting view', async ($, on) => {

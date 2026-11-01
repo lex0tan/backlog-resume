@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { EN, MARKED } from './fixtures/panel'
-import { agenda, areas, bar, collect, duration, finishedText, findRef, groups, indexesOf, newlyDirty, partsOf, projects, promptFor, refOf, search, startView, statusText, stillOpen, unblockers, whenMark } from './lib/board'
+import { agenda, areas, bar, collect, duration, finishedSegments, finishedText, findRef, groups, indexesOf, newlyDirty, partsOf, projects, promptFor, refOf, search, startView, statusSegments, statusText, stillOpen, unblockers, whenMark } from './lib/board'
 import type { Listed } from './lib/board'
 import { normPath, relativeTo, sameFile } from './lib/paths'
 import { t } from './lib/strings'
@@ -158,6 +158,17 @@ test('duration, bar, statusText and finishedText', () => {
   expect(statusText({ id: 'A-1' }, null, 0)).toBe('▶ A-1')
   expect(finishedText({ id: 'A-1', minutes: 7, pending: 2 }, S)).toBe('✓ A-1 done · 7 min · ⚠ 2 uncommitted')
   expect(finishedText({ id: 'A-1', minutes: 7, pending: 2 }, MARKED)).toBe('it:✓ A-1 done · 7 it:min · it:⚠ 2 uncommitted')
+  expect(statusSegments(a, { done: 1, total: 2 }, 40 * 60_000)).toEqual([
+    { text: '▶ A-1', tone: 'item' }, { text: ' · ', tone: 'muted' },
+    { text: '████', tone: 'barDone' }, { text: '░░░░', tone: 'barLeft' }, { text: ' 1/2' }, { text: ' · ', tone: 'muted' },
+    { text: '40 min', tone: 'muted' },
+  ])
+  // Nothing done yet: no empty filled run.
+  expect(statusSegments({ id: 'A-1' }, { done: 0, total: 2 }, 0).map(s => s.tone)).toEqual(['item', 'muted', 'barLeft', undefined])
+  expect(finishedSegments({ id: 'A-1', minutes: 7, pending: 2 }, S)).toEqual([
+    { text: '✓ A-1 done', tone: 'done' }, { text: ' · ', tone: 'muted' }, { text: '7 min', tone: 'muted' }, { text: ' · ', tone: 'muted' },
+    { text: '⚠ 2 uncommitted', tone: 'warn' },
+  ])
   expect(t(S, 'noSuchKey')).toBe('noSuchKey')
   expect(t(S, 'added', { id: 'X-1' })).toBe('Added X-1')
 })
