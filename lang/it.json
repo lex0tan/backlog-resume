@@ -159,6 +159,16 @@
     "promptUnmerged": "Attenzione: commit che citano l'item su branch non uniti a quello corrente ({commits}). Prima di lavorare verifica cosa è già fatto lì (`git show {branch}:{file}`, `git show --stat <hash>`) e dimmelo: va unito, non rifatto.",
     "promptRules": "Non leggere altri backlog: apri solo i file che l'item cita e che servono davvero. Se è una decisione, proponi le opzioni e chiedimi. Se l'item ha più parti indipendenti e non ha già le Parti, aggiungile sotto l'item come `- [ ] parte` prima di iniziare; ogni parte finita la segni `[x]` nello stesso commit del suo codice.",
     "promptIndexes": "Gli indici sopra al suo file ({files}): aprili solo per aggiornarli, quando l'item si chiude o ne cambia lo stato o la prossima attività.",
-    "promptRemove": "A lavoro verificato rimuovi l'item da `{file}`."
+    "promptRemove": "A lavoro verificato rimuovi l'item da `{file}`.",
+    "lockedElsewhere": "in lavorazione altrove",
+    "lockedNote": "In lavorazione in un'altra sessione: non si può prendere qui finché quella non lo chiude o lo libera.",
+    "leftUnfinished": "Rimasto a metà: {ref}",
+    "btnResume": "Riprendi",
+    "btnRelease": "Libera",
+    "btnWaiting": "Aspettano te · {n}",
+    "canDoLine": "Claude può fare · {n}",
+    "doneTodayLine": "Fatti oggi · {n}",
+    "released": "{ref} liberato",
+    "resumed": "{ref} ripreso"
   }
 }

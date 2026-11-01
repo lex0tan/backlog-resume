@@ -14,8 +14,6 @@ export const PAGE = 8
 
 export const board = atom({ plugin: 'backlog', key: 'board' } as const, null)
 export const view = atom({ plugin: 'backlog', key: 'view' } as const, { mode: 'projects' })
-export const active = atom({ plugin: 'backlog', key: 'active' } as const, null)
-export const finished = atom({ plugin: 'backlog', key: 'finished' } as const, null)
 export const strings = atom({ plugin: 'backlog', key: 'strings' } as const, null)
 
 type GitEntry = { project: string; status: string; branch?: string | null; commit?: { hash: string } | null; dirty?: { path: string }[] }
@@ -38,6 +36,8 @@ export async function load($: EngineInterface, filter: string): Promise<{ board:
   const projects: BoardProject[] = (listed.projects ?? []).map(p => ({ rel: p.rel, name: p.name, git: gitLine(gits.find(g => g.project === p.rel), s) }))
   const next: Board = {
     filter, items, projects, language,
+    root: typeof listed.root === 'string' ? listed.root.replace(/\/+$/, '') : '',
+    lockMinutes: listed.settings?.lockMinutes ?? 5,
     workstreams: listed.status === 'error' ? [] : workstreamsOf(listed, filter),
     multi: projects.length > 1,
     typeOrder: listed.typeOrder ?? [],

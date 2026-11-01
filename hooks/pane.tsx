@@ -4,6 +4,7 @@ import type { Board, Item, Strings, View } from '../types'
 import { agenda, areas, dayLabel, findRef, groups, projects, promptFor, refOf, search, unblockers, whenMark } from './lib/board'
 import { runScript } from './lib/script'
 import { t } from './lib/strings'
+import { adoptOrphan, closedToday, dropOrphan, labelOf, lockKey, locks, mineOf, releaseItem, takeItem } from './lib/session'
 import { PAGE, PANE, go, load, snapshot } from './lib/state'
 import type { Written } from './lib/state'
 
@@ -19,8 +20,13 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
   const { Box, Text, Button } = els
   // The phone has no text fields: no search and no new item there.
   const Input = 'Input' in els ? els.Input : null
-  const { board: b, view: v, strings: s } = await snapshot($)
-  if (!b || !s) return <Text dimColor>/backlog</Text>
+  const { board: loaded, view: v, strings: s } = await snapshot($)
+  if (!loaded || !s) return <Text dimColor>/backlog</Text>
+  // Items other live sessions hold are marked; silent sessions of this workspace leave orphans to resume or release.
+  const held = await locks($, Date.now(), loaded.lockMinutes * 60_000, loaded.root)
+  const b: Board = { ...loaded, items: loaded.items.map(i => { const l = held.elsewhere.get(lockKey(i)); return l ? { ...i, lockedBy: l.sessionId } : i }) }
+  const doable = b.items.filter(i => !i.waiting)
+  const waitingCount = b.items.length - doable.length
   const tr = (key: string, vars?: Record<string, string | number>) => t(s, key, vars)
 
   const header = (
@@ -48,6 +54,29 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
     )),
   })
 
+  const doneToday = (await closedToday($)).length
+  const orphanRows = held.orphans.map(o => {
+    const key = lockKey(o)
+    return (
+      <Box key={`orphan-${key}`} flexDirection="row" gap={2}>
+        <Text color="yellow" wrap="truncate-end">{tr('leftUnfinished', { ref: labelOf(o) })}</Text>
+        <Button key={`resume-${key}`} hotkey="r" onPress={async () => {
+          const adopted = await adoptOrphan($, o)
+          $.ui.toast(tr('resumed', { ref: labelOf(o) }), { timeoutMs: 4000 })
+          const hit = itemOf(b, adopted.id, adopted.project)
+          if (!hit) return
+          await $.ui.close({ id: PANE })
+          await $.prompt.submit({ text: promptFor(hit, s, b.indexFiles), asUser: true })
+        }}>{tr('btnResume')}</Button>
+        <Button key={`release-${key}`} hotkey="x" onPress={async () => {
+          await dropOrphan($, o)
+          $.ui.toast(tr('released', { ref: labelOf(o) }), { timeoutMs: 4000 })
+          await load($, b.filter)
+        }}>{tr('btnRelease')}</Button>
+      </Box>
+    )
+  })
+
   if (v.mode === 'projects' || (v.mode === 'areas' && v.project === undefined)) {
     const { today, tomorrow } = agenda(b.items)
     const late = today.filter(i => i.when?.state === 'overdue').length
@@ -73,7 +102,7 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
       </Box>
     )
     const choices = v.mode === 'projects'
-      ? projects(b.items).map((p, n) => {
+      ? projects(doable).map((p, n) => {
         const git = b.projects.find(x => x.rel === p.id)?.git
         return (
           <Button key={`p-${p.id}`} plain hotkey={n < 9 ? String(n + 1) : undefined} onPress={() => go($, { mode: 'areas', project: p.id })}>
@@ -81,7 +110,7 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
           </Button>
         )
       })
-      : areas(b.items).map((a, n) => (
+      : areas(doable).map((a, n) => (
         <Button key={`a-${a.id}`} plain hotkey={n < 9 ? String(n + 1) : undefined} onPress={() => go($, { mode: 'types', area: a.id })}>
           {`${a.name} · ${count(a.count, a.blocked)}`}
         </Button>
@@ -89,20 +118,24 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
     return (
       <Box flexDirection="column">
         {header}
-        <Text dimColor>{tr(v.mode === 'projects' ? 'pickProject' : 'pickArea', { n: b.items.length })}</Text>
+        {orphanRows}
+        <Text bold>{tr('canDoLine', { n: doable.length })}</Text>
+        <Text dimColor>{tr(v.mode === 'projects' ? 'pickProject' : 'pickArea', { n: doable.length })}</Text>
         {choices}
         {Input && <Input key="search" placeholder={tr('searchPlaceholder')} submitLabel={tr('search')} onSubmit={(query: string) => go($, { mode: 'search', query, page: 0 })} />}
         <Box flexDirection="row" gap={2}>
           <Button key="unblock" hotkey="s" onPress={() => go($, { mode: 'unblock', page: 0 })}>{tr('btnUnblock')}</Button>
           <Button key="new" hotkey="a" onPress={() => go($, { mode: 'new' })}>{tr('btnNew')}</Button>
+          {waitingCount > 0 && <Button key="waiting" hotkey="w" onPress={() => go($, { mode: 'waiting', page: 0 })}>{tr('btnWaiting', { n: waitingCount })}</Button>}
         </Box>
+        {doneToday > 0 && <Text dimColor>{tr('doneTodayLine', { n: doneToday })}</Text>}
         {agendaCard}
       </Box>
     )
   }
 
   if (v.mode === 'areas') {
-    const inProject = b.items.filter(i => i.project === v.project)
+    const inProject = doable.filter(i => i.project === v.project)
     return (
       <Box flexDirection="column">
         {header}
@@ -118,7 +151,7 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
   }
 
   if (v.mode === 'types') {
-    const inArea = b.items.filter(i => i.area === v.area && (v.project === undefined || i.project === v.project))
+    const inArea = doable.filter(i => i.area === v.area && (v.project === undefined || i.project === v.project))
     return (
       <Box flexDirection="column">
         {header}
@@ -136,12 +169,12 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
   }
 
   if (v.mode === 'items' || v.mode === 'unblock' || v.mode === 'search' || v.mode === 'waiting') {
-    const list = v.mode === 'items' ? b.items.filter(i => i.area === v.area && i.type === v.type && (v.project === undefined || i.project === v.project))
+    const list = v.mode === 'items' ? doable.filter(i => i.area === v.area && i.type === v.type && (v.project === undefined || i.project === v.project))
       : v.mode === 'unblock' ? unblockers(b.items) : v.mode === 'waiting' ? b.items.filter(i => i.waiting) : search(b.items, v.query)
     const title = v.mode === 'items' ? `${list[0]?.areaName ?? v.area} · [${v.type}] ${list.length}`
       : v.mode === 'unblock' ? tr('unblockTitle', { n: list.length })
         : v.mode === 'waiting' ? tr('waitingTitle', { n: list.length }) : tr('searchTitle', { query: v.query, n: list.length })
-    const { pages, rows } = itemList(list, v.page, v, i => (v.mode === 'unblock' ? tr('unblocksLine', { id: label(i), n: i.unblocks.length, text: i.text }) : line(i)))
+    const { pages, rows } = itemList(list, v.page, v, i => (v.mode === 'unblock' ? tr('unblocksLine', { id: label(i), n: i.unblocks.length, text: i.text }) : v.mode === 'waiting' && i.steps.length ? `${line(i)} → ${i.steps.join('; ')}` : line(i)))
     return (
       <Box flexDirection="column">
         {header}
@@ -207,6 +240,8 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
         <Box flexDirection="row" gap={2}>
           <Button key="yes" variant="primary" hotkey="y" onPress={async () => {
             const r = (await runScript($, ['done', refOf(item)])) as Written
+            const own = await mineOf($)
+            if (r.status === 'done' && own && lockKey(own) === lockKey(item)) await releaseItem($)
             $.ui.toast(r.status === 'done'
               ? (r.next ? tr('removedNext', { id: item.id, next: r.next }) : tr('removed', { id: item.id }))
               : tr('notRemoved', { reason: r.message ?? r.status }), { timeoutMs: 4000 })
@@ -239,11 +274,13 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
         <Text key={`p-${n}`} dimColor={p.done} wrap="wrap">{p.done ? '✔' : '○'} {p.text}</Text>
       ))}
       {item.doneWhen && <Text color="green" wrap="wrap">{tr('doneWhenLine', { text: item.doneWhen })}</Text>}
+      {item.lockedBy && <Text color="yellow" wrap="wrap">🔒 {tr('lockedElsewhere')}. {tr('lockedNote')}</Text>}
       <Box flexDirection="row" gap={2}>
-        <Button key="work" variant="primary" hotkey="l" autoFocus onPress={async () => {
+        {!item.lockedBy && <Button key="work" variant="primary" hotkey="l" autoFocus onPress={async () => {
+          if (!(await takeItem($, item, b))) return
           await $.ui.close({ id: PANE })
           await $.prompt.submit({ text: promptFor(item, s, b.indexFiles), asUser: true })
-        }}>{tr('btnWork')}</Button>
+        }}>{tr('btnWork')}</Button>}
         <Button key="done" hotkey="f" onPress={() => go($, { mode: 'confirm', id: item.id, project: item.project, back: v.back })}>{tr('done')}</Button>
         <Button key="back" hotkey="b" onPress={() => go($, v.back)}>{tr('btnBack')}</Button>
         {toRoot}

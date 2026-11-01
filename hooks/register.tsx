@@ -1,6 +1,7 @@
 import type { Register } from 'claude-code'
 
 import { PANE, load, startAt } from './lib/state'
+import { HEARTBEAT_MS, heartbeat, refreshActive, restore } from './lib/session'
 import { t } from './lib/strings'
 import { renderPane } from './pane'
 
@@ -18,6 +19,24 @@ export const register: Register = on => {
     } catch (err) {
       $.ui.log(`backlog: /backlog not registered: ${err instanceof Error ? err.message : String(err)}`)
     }
+    // The session's own item comes back, orphans of this workspace are proposed, and the heartbeat starts.
+    await restore($).catch(err => $.ui.log(`backlog: restore failed: ${err instanceof Error ? err.message : String(err)}`))
+    $.clock.every(HEARTBEAT_MS, () => {
+      heartbeat($).catch(err => $.ui.log(`backlog: heartbeat failed: ${err instanceof Error ? err.message : String(err)}`))
+    })
+    return next(e)
+  })
+
+  // At the end of a turn of the main loop: an item the model removed from its file is freed.
+  on('turn.complete', async ($, e, next) => {
+    const result = await next(e)
+    if (!e.agentId) await refreshActive($)
+    return result
+  })
+
+  // The item stays when the session ends unfinished: it becomes an orphan the next session proposes.
+  on('session.end', async ($, e, next) => {
+    await refreshActive($)
     return next(e)
   })
 

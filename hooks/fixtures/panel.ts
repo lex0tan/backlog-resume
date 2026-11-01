@@ -87,7 +87,17 @@ export const EN: Record<string, string> = {
   "promptUnmerged": "Warning: commits that cite the item sit on branches not merged into the current one ({commits}). Before working, check what is already done there (`git show {branch}:{file}`, `git show --stat <hash>`) and tell me: it should be merged, not redone.",
   "promptRules": "Do not read other backlogs: open only the files the item cites and that you really need. If it is a decision, propose the options and ask me. If the item has several independent parts and no Parts yet, add them under the item as `- [ ] part` before starting; mark each finished part `[x]` in the same commit as its code.",
   "promptIndexes": "The index files above its file ({files}): open them only to update them when the item closes or its status or next step changes.",
-  "promptRemove": "When the work is verified, remove the item from `{file}`."
+  "promptRemove": "When the work is verified, remove the item from `{file}`.",
+  "lockedElsewhere": "in progress elsewhere",
+  "lockedNote": "In progress in another session: it cannot be taken here until that session closes or releases it.",
+  "leftUnfinished": "Left unfinished: {ref}",
+  "btnResume": "Resume",
+  "btnRelease": "Release",
+  "btnWaiting": "Waiting on you · {n}",
+  "canDoLine": "Claude can do · {n}",
+  "doneTodayLine": "Done today · {n}",
+  "released": "{ref} released",
+  "resumed": "{ref} resumed"
 }
 
 // A second language for the tests: every English text with a marker in front, so a test can tell which file the pane read.

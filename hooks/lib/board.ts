@@ -9,6 +9,8 @@ export type Listed = {
   status: string
   message?: string
   language?: string
+  root?: string
+  settings?: { lockMinutes?: number }
   typeOrder?: string[]
   projects?: { rel: string; name: string; workstreams: ListedWorkstream[] }[]
 }

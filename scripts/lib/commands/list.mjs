@@ -3,7 +3,7 @@
 import { InvalidInputError } from '../errors.mjs'
 import { unmerged } from '../git.mjs'
 import { byWhen } from '../model.mjs'
-import { norm } from '../text.mjs'
+import { norm, posix } from '../text.mjs'
 import { ancestors, leaves, subprojectOf } from '../tree.mjs'
 import { readContext, todayIso, wsPath } from './shared.mjs'
 
@@ -75,6 +75,7 @@ export function list(ws, today = todayIso(), { project } = {}) {
   return {
     status: 'ok',
     language: ws.kw.language,
+    root: posix(ws.root),
     workspace: ws.root.replace(/[\\/]+$/, '').split(/[\\/]/).pop(),
     focus: ws.focus?.rel ?? null,
     typeOrder,

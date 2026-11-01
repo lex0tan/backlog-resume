@@ -1,0 +1,196 @@
+// The item each session works on, kept in the plugin store so that sessions see one another:
+//   active:<sessionId>    one entry per session (the item it works on, with a heartbeat)
+//   finished:<sessionId>  the last item the session closed, shown until a new one starts
+//   closed                the last 50 closed items, for the "done today" count
+// A session whose heartbeat stopped leaves an orphan: it is proposed to the user, never taken automatically.
+
+import { atom, read, update } from 'claude-code'
+import type { EngineInterface } from 'claude-code'
+
+import type { Active, Board, Closed, Finished, Item } from '../../types'
+import { finishedText, newlyDirty, partsOf, statusText, stillOpen } from './board'
+import { relativeTo } from './paths'
+import { runScript } from './script'
+import { loadStrings, t } from './strings'
+
+const ACTIVE = 'active:'
+const FINISHED = 'finished:'
+const CLOSED = 'closed'
+const CLOSED_KEPT = 50
+export const HEARTBEAT_MS = 60_000
+
+export const active = atom({ plugin: 'backlog', key: 'active' } as const, null)
+export const finished = atom({ plugin: 'backlog', key: 'finished' } as const, null)
+
+export type Locks = {
+  /** The entry of this session. */
+  mine: Active | null
+  /** Items other live sessions work on, by `project:ID`. */
+  elsewhere: Map<string, Active>
+  /** Entries whose session went silent, in this workspace. */
+  orphans: Active[]
+}
+
+/** How an item is keyed across sessions: its project folder and ID. */
+export const lockKey = (a: Pick<Active, 'project' | 'id'>) => `${a.project}:${a.id}`
+/** How an entry is named to the user. */
+export const labelOf = (a: Pick<Active, 'project' | 'id'>) => (a.project === '.' ? a.id : lockKey(a))
+
+const isActive = (v: unknown): v is Active => {
+  const a = v as Partial<Active> | null | undefined
+  return !!a && typeof a.id === 'string' && typeof a.sessionId === 'string' && typeof a.heartbeatAt === 'number' && typeof a.cwd === 'string'
+}
+
+/** Every session's entry, this session's included. */
+async function entries($: EngineInterface): Promise<Active[]> {
+  const keys = (await $.store.keys()).filter(k => k.startsWith(ACTIVE))
+  const values = await Promise.all(keys.map(k => $.store.get(k)))
+  return values.filter(isActive)
+}
+
+async function myKey($: EngineInterface): Promise<string> {
+  return `${ACTIVE}${await $.session.id()}`
+}
+
+/** Who holds what: `mine` regardless of its age (a resumed session finds its item), others fresh (`elsewhere`) or silent (`orphans`). */
+export async function locks($: EngineInterface, now: number, ttlMs: number, root: string): Promise<Locks> {
+  const me = await $.session.id()
+  const out: Locks = { mine: null, elsewhere: new Map(), orphans: [] }
+  for (const a of await entries($)) {
+    if (a.sessionId === me) out.mine = a
+    else if (now - a.heartbeatAt < ttlMs) out.elsewhere.set(lockKey(a), a)
+    else if (relativeTo(root, a.cwd) !== null) out.orphans.push(a)
+  }
+  return out
+}
+
+/** The entry of this session. */
+export async function mineOf($: EngineInterface): Promise<Active | null> {
+  const value = await $.store.get(await myKey($))
+  return isActive(value) ? value : null
+}
+
+// Status line: item, bar of the parts done, time.
+async function showProgress($: EngineInterface, value: Active | null, parts: ReturnType<typeof partsOf> | null, strings: Record<string, string> = {}) {
+  $.ui.status(value ? statusText(value, parts, Date.now(), strings) : undefined)
+}
+
+async function setMine($: EngineInterface, value: Active | null) {
+  const key = await myKey($)
+  await update($, active, () => value)
+  await (value ? $.store.set(key, value) : $.store.delete(key))
+}
+
+/** Clears the "done" line, from the status line and the store. */
+export async function clearFinished($: EngineInterface) {
+  await update($, finished, () => null)
+  await $.store.delete(`${FINISHED}${await $.session.id()}`)
+  $.ui.status(undefined)
+}
+
+async function setFinished($: EngineInterface, value: Finished, strings: Record<string, string>) {
+  await update($, finished, () => value)
+  await $.store.set(`${FINISHED}${await $.session.id()}`, value)
+  $.ui.status(finishedText(value, strings))
+}
+
+/** This session starts the item. Null when another live session already holds it. */
+export async function takeItem($: EngineInterface, item: Item, board: Board, now = Date.now()): Promise<Active | null> {
+  const held = await locks($, now, board.lockMinutes * 60_000, board.root)
+  if (held.elsewhere.has(lockKey(item))) return null
+  const value: Active = {
+    id: item.id, project: item.project, file: `${board.root}/${item.file}`, text: item.text, language: board.language,
+    startedAt: now, dirtyAtStart: board.dirty, sessionId: await $.session.id(), cwd: await $.session.cwd(), heartbeatAt: now,
+  }
+  if (await read($, finished)) await clearFinished($)
+  await setMine($, value)
+  await showProgress($, value, null, await loadStrings($, board.language))
+  return value
+}
+
+/** This session lets go of its item. */
+export async function releaseItem($: EngineInterface) {
+  await setMine($, null)
+  $.ui.status(undefined)
+}
+
+/** Says this session is alive. */
+export async function heartbeat($: EngineInterface, now = Date.now()) {
+  const a = await mineOf($)
+  if (a) await $.store.set(await myKey($), { ...a, heartbeatAt: now })
+}
+
+/** Takes an orphan over: its entry moves under this session's ID. */
+export async function adoptOrphan($: EngineInterface, orphan: Active, now = Date.now()): Promise<Active> {
+  await $.store.delete(`${ACTIVE}${orphan.sessionId}`)
+  const value: Active = { ...orphan, sessionId: await $.session.id(), cwd: await $.session.cwd(), heartbeatAt: now }
+  await setMine($, value)
+  await showProgress($, value, null, await loadStrings($, value.language))
+  return value
+}
+
+/** Frees an orphan's item without taking it. */
+export async function dropOrphan($: EngineInterface, orphan: Active) {
+  await $.store.delete(`${ACTIVE}${orphan.sessionId}`)
+}
+
+const dayKey = (ms: number) => { const d = new Date(ms); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` }
+
+export async function closedToday($: EngineInterface, now = Date.now()): Promise<Closed[]> {
+  const list = ((await $.store.get(CLOSED)) as Closed[] | undefined) ?? []
+  return list.filter(c => dayKey(c.at) === dayKey(now))
+}
+
+type GitOut = { status: string; projects?: { dirty?: { path: string }[] }[] }
+
+/** At the end of a turn: when the model removed the item from its file the item is freed and recorded as closed, otherwise the status line is refreshed. */
+export async function refreshActive($: EngineInterface, now = Date.now()) {
+  const a = await mineOf($)
+  if (!a) return
+  const strings = await loadStrings($, a.language)
+  let text: string
+  try {
+    text = (await $.fs.read(a.file, { as: 'text' })) as string
+  } catch (err) {
+    // File moved or unreadable: nothing is decided, the item stays active.
+    $.ui.log(`backlog: cannot read ${a.file} for ${labelOf(a)}: ${err instanceof Error ? err.message : String(err)}`)
+    return
+  }
+  if (stillOpen(text, a.id)) {
+    await showProgress($, a, partsOf(text, a.id), strings)
+    return
+  }
+  await releaseItem($)
+  const minutes = Math.round((now - a.startedAt) / 60_000)
+  const closed = ((await $.store.get(CLOSED)) as Closed[] | undefined) ?? []
+  await $.store.set(CLOSED, [...closed, { id: a.id, at: now, minutes }].slice(-CLOSED_KEPT))
+  const git = (await runScript($, ['git'])) as GitOut
+  const dirty = git.status === 'error' || git.status === 'no-git' ? [] : (git.projects ?? []).flatMap(p => (p.dirty ?? []).map(d => d.path))
+  const pending = newlyDirty(a.dirtyAtStart, dirty).length
+  const value: Finished = { id: a.id, minutes, pending }
+  $.ui.toast(finishedText(value, strings), { timeoutMs: pending ? 10_000 : 5000 })
+  await setFinished($, value, strings)
+}
+
+/** At the start of a session: brings back this session's item (or its last "done" line) and proposes the orphans of this workspace. */
+export async function restore($: EngineInterface, now = Date.now()) {
+  const own = await mineOf($)
+  if (own) {
+    await update($, active, () => own)
+    const strings = await loadStrings($, own.language)
+    await showProgress($, own, null, strings)
+    $.ui.toast(t(strings, 'inProgress', { id: labelOf(own) }), { timeoutMs: 6000 })
+  } else {
+    const last = await $.store.get(`${FINISHED}${await $.session.id()}`)
+    const f = last as Finished | undefined
+    if (f?.id) await setFinished($, f, await loadStrings($, 'en'))
+  }
+  // The root and the time limit come from the workspace: it is read only when someone else left an entry.
+  const me = await $.session.id()
+  if (!(await entries($)).some(a => a.sessionId !== me)) return
+  const listed = (await runScript($, ['list'])) as { status: string; root?: string; language?: string; settings?: { lockMinutes?: number } }
+  if (listed.status !== 'ok' || !listed.root) return
+  const { orphans } = await locks($, now, (listed.settings?.lockMinutes ?? 5) * 60_000, listed.root)
+  const strings = await loadStrings($, listed.language ?? 'en')
+  for (const o of orphans) $.ui.toast(t(strings, 'orphanProposal', { id: labelOf(o) }), { timeoutMs: 8000 })
+}

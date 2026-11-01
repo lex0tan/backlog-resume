@@ -27,7 +27,7 @@ export type Item = {
   parts: Part[]
   unmerged: { hash: string; branch: string; subject: string }[]
   when: When | null
-  // Session that holds the item (Task 16).
+  // ID of another live session that works on the item.
   lockedBy: string | null
 }
 export type Parts = { done: number; total: number }
@@ -35,6 +35,9 @@ export type Workstream = { id: string; label: string; area: string; project: str
 export type BoardProject = { rel: string; name: string; git: string | null }
 export type Board = {
   filter: string
+  // Absolute POSIX path of the workspace root, and how long a session may be silent before its item is orphaned.
+  root: string
+  lockMinutes: number
   items: Item[]
   workstreams: Workstream[]
   projects: BoardProject[]
@@ -60,7 +63,23 @@ export type View =
   | { mode: 'item'; id: string; project?: string; back: View }
   | { mode: 'confirm'; id: string; project?: string; back: View }
   | { mode: 'new'; project?: string; workstream?: string; type?: string }
-export type Active = { id: string; text: string; file: string; startedAt?: number; dirtyAtStart?: string[] }
+// The item one session works on. `file` is absolute; the entry lives in the store under `active:<sessionId>`
+// and `heartbeatAt` says the session is alive (a stale one in this workspace is an orphan).
+export type Active = {
+  id: string
+  project: string
+  file: string
+  text: string
+  // Language of the workspace, to word the status line and toasts without reading the backlog again.
+  language: string
+  startedAt: number
+  dirtyAtStart: string[]
+  sessionId: string
+  cwd: string
+  heartbeatAt: number
+}
+// An item closed by a session, kept in the store (last 50) for the "done today" count.
+export type Closed = { id: string; at: number; minutes: number | null }
 // The last closed item, shown as a done line in the status line until dismissed.
 export type Finished = { id: string; minutes: number | null; pending: number }
 // Panel texts: `panel` section of lang/<language>.json.

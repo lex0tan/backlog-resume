@@ -35,6 +35,9 @@ const PANE = {
 
 function stubs(on: OnT, language = 'en') {
   const seen = { prompts: [] as string[], opened: [] as string[], runs: [] as string[][], toasts: [] as string[], panes: [] as { id: string }[] }
+  mock.store(on)
+  on('session.id', () => ({ value: 'S1' }))
+  on('ui.status', () => ({ value: undefined }))
   on('command.register', () => ({ value: { command: 'backlog' } }))
   on('session.cwd', () => ({ value: 'C:\\Users\\x\\My Projects\\ws' }))
   on('fs.read', (_, e) => {

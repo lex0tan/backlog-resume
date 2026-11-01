@@ -22,6 +22,7 @@ test('list: exit 0 and JSON with projects', (t) => {
   const r = run(root, ['list'])
   assert.equal(r.code, 0)
   assert.ok(Array.isArray(r.json.projects))
+  assert.ok(r.json.root.length > 0 && !r.json.root.includes('\\'), 'root is a POSIX path')
 })
 
 test('item: unknown ID answers not-found with exit 0', (t) => {
