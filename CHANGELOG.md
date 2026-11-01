@@ -2,9 +2,9 @@
 
 All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and versions follow the release date (`YEAR.MONTH.DAY`, tag `vYEAR.MONTH.DAY`), still valid [Semantic Versioning](https://semver.org/spec/v2.0.0.html) strings.
 
-## [0.1.0] - Unreleased
+## [2026.11.1] - 2026-11-01
 
 ### Fixed
 - Backlog files are written atomically (temporary file, then rename) and `done` / `add` run under a per-file lock, so two sessions closing or adding items in the same file no longer overwrite each other or get the same ID. A lock older than 30 seconds is taken over.
