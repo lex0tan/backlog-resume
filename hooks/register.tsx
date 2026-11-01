@@ -21,14 +21,14 @@ const refreshAfterTool = ($: Parameters<typeof refreshActive>[0]) =>
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    // A skill or command of the same name may already hold /backlog: that must not stop the session.
+    // A skill or command of the same name may already hold /backlogs: that must not stop the session.
     try {
       await $.command.register({
-        name: 'backlog',
-        description: 'Open the backlog panel; /backlog <audit|resume|plan|do|adopt|init|split> <request> runs the session skill',
+        name: 'backlogs',
+        description: 'Open the backlog panel; /backlogs <audit|resume|plan|do|adopt|init|split> <request> runs the session skill',
       })
     } catch (err) {
-      $.ui.log(`backlog: /backlog not registered: ${err instanceof Error ? err.message : String(err)}`)
+      $.ui.log(`backlog: /backlogs not registered: ${err instanceof Error ? err.message : String(err)}`)
     }
     // The session's own item comes back, orphans of this workspace are proposed, and the heartbeat starts.
     await restore($).catch(err => $.ui.log(`backlog: restore failed: ${err instanceof Error ? err.message : String(err)}`))
@@ -82,7 +82,7 @@ export const register: Register = on => {
     return text && result.deny === undefined ? { ...result, context: [...(result.context ?? []), text] } : result
   }).catch(($, e, next) => next(e))
 
-  on('command.run', { command: 'backlog' }, async ($, e) => {
+  on('command.run', { command: 'backlogs' }, async ($, e) => {
     const args = e.args.trim()
     const first = args.split(/\s+/)[0] ?? ''
     const mode = MODES.find(m => m === first.toLowerCase())

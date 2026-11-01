@@ -72,7 +72,7 @@ When the request ends with a line naming items other sessions are working on rig
 5. **Consistency.** `check`, filtered to the scope's files (`--project P`), plus `missingRefs` from the route. Report only verified problems. Issue codes include `missing-file`, `stale-next`, `no-id`, `declared-done`, `no-done-when`, `stale-item`, `duplicate-id`, `ambiguous-link` and `dependency-cycle`; `error` level first.
 6. **Next step.** One activity only: an `overdue` or `due` item of the scope (`list` shows `due`); then the index's `Next:` if it is still open, unblocked and not `later`; otherwise the first open, unblocked item of the same workstream, saying why. Skip items that are `waiting` or in a `cycle`.
 7. **Report** in the format below. In `do`, run the item (follow the project's own CLAUDE.md for how to verify code), check its criterion, then apply the automatic updates.
-8. **Closing.** In `do`, when an item is finished do not take another in the same session: accumulated context is re-read on every call and is the main cost. End the report by suggesting `/clear` and then `/backlog` for the next item, unless the user explicitly asks to continue.
+8. **Closing.** In `do`, when an item is finished do not take another in the same session: accumulated context is re-read on every call and is the main cost. End the report by suggesting `/clear` and then `/backlogs` for the next item, unless the user explicitly asks to continue.
 
 ### `do` without a criterion
 
@@ -189,5 +189,5 @@ Short. Omit empty sections, except "Next step".
 <diff in words; applied only in do, and only if automatic>
 
 ## Where we are
-<one sentence; in do, once the item is finished: "Run /clear, then /backlog for the next item.">
+<one sentence; in do, once the item is finished: "Run /clear, then /backlogs for the next item.">
 ```

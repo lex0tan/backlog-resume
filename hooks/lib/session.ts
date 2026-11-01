@@ -21,10 +21,10 @@ export const HEARTBEAT_MS = 60_000
 /** Entries of other sessions older than this are deleted from the store: nobody can resume or propose them any more. */
 export const STORE_KEEP_MS = 30 * 24 * 3600_000
 
-export const active = atom({ plugin: 'backlog', key: 'active' } as const, null)
-export const finished = atom({ plugin: 'backlog', key: 'finished' } as const, null)
+export const active = atom({ plugin: 'backlogs', key: 'active' } as const, null)
+export const finished = atom({ plugin: 'backlogs', key: 'finished' } as const, null)
 /** The status line, drawn beside the prompt hint by hooks/status.tsx. */
-export const line = atom({ plugin: 'backlog', key: 'line' } as const, null)
+export const line = atom({ plugin: 'backlogs', key: 'line' } as const, null)
 
 export type Locks = {
   /** The entry of this session. */

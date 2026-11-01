@@ -5,7 +5,7 @@ import { EMPTY, LISTED_FROM_SHOP, PANE, TURN, ago, entry, setup } from './fixtur
 
 type $T = Parameters<TestBody>[0]
 
-const run = ($: $T, args: string) => $.command.run({ command: 'backlog', args } as never) as Promise<{ text: string }>
+const run = ($: $T, args: string) => $.command.run({ command: 'backlogs', args } as never) as Promise<{ text: string }>
 
 test('the same item is locked whichever folder the other session started from', async ($, on) => {
   // Session A started in the workspace root and holds shop/TODO.md; B started inside shop, where the project is ".".
@@ -73,7 +73,7 @@ test('other modes carry the held items too, and say nothing when none is held', 
   const { clock, seen } = setup(on)
   await run($, 'resume shop')
   await clock.advance(1)
-  expect(seen.prompts[0]).toBe('Use the backlog:session skill. Mode: resume. Request: shop')
+  expect(seen.prompts[0]).toBe('Use the backlogs:session skill. Mode: resume. Request: shop')
 })
 
 test('Resume on an orphan whose item is gone only drops the entry; with an item of its own the session is not asked to replace it', async ($, on) => {

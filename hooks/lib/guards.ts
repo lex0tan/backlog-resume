@@ -14,7 +14,7 @@ import { labelOf, mineOf } from './session'
 import { loadStrings, t } from './strings'
 
 /** Backlog files of the workspace, read once per session and again after anything that can change them. */
-export const known = atom({ plugin: 'backlog', key: 'files' } as const, null)
+export const known = atom({ plugin: 'backlogs', key: 'files' } as const, null)
 
 export async function backlogFiles($: EngineInterface, fresh = false): Promise<FileSet | null> {
   const cached = await read($, known)

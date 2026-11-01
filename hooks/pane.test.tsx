@@ -28,7 +28,7 @@ const listed = (language: string) => ({
 const GIT = { status: 'ok', projects: [{ project: 'shop', status: 'clean', branch: 'main', commit: { hash: 'abc123' }, dirty: [] }, { project: 'docs', status: 'no-git', branch: null, commit: null, dirty: [] }] }
 
 const PANE = {
-  plugin: 'backlog',
+  plugin: 'backlogs',
   component: 'Pane',
   requestId: 'backlog',
   props: { title: 'Backlog', isFocused: true, bodyColumns: 70, placement: 'dock', scroll: { offset: 0, bodyRows: 22 }, view: {} },
@@ -40,7 +40,7 @@ function stubs(on: OnT, language = 'en') {
   on('session.id', () => ({ value: 'S1' }))
   on('ui.status', () => ({ value: undefined }))
   on('session.surfaces', () => ({ value: ['terminal'] }))
-  on('command.register', () => ({ value: { command: 'backlog' } }))
+  on('command.register', () => ({ value: { command: 'backlogs' } }))
   on('session.cwd', () => ({ value: 'C:\\Users\\x\\My Projects\\ws' }))
   on('fs.read', (_, e) => {
     const code = /lang[\\/](\w+)\.json$/.exec(e.path)?.[1]
@@ -61,10 +61,10 @@ function stubs(on: OnT, language = 'en') {
   return seen
 }
 
-const open = ($: $T, args = '') => $.command.run({ command: 'backlog', args } as never)
+const open = ($: $T, args = '') => $.command.run({ command: 'backlogs', args } as never)
 const SURFACES = ['terminal', 'desktop'] as const
 
-test('/backlog opens the pane, which lists both projects on every surface', async ($, on) => {
+test('/backlogs opens the pane, which lists both projects on every surface', async ($, on) => {
   const seen = stubs(on)
   const result = await open($)
   expect(result.text).toContain('2 open items')
@@ -125,7 +125,7 @@ test('a mode as first argument runs the session skill and opens no pane', async 
   // The submit goes out after the command hook has returned.
   expect(seen.prompts).toEqual([])
   await clock.advance(1)
-  expect(seen.prompts).toEqual(['Use the backlog:session skill. Mode: plan. Request: shop'])
+  expect(seen.prompts).toEqual(['Use the backlogs:session skill. Mode: plan. Request: shop'])
   expect(result.text).toContain('plan')
   // Anything else is a filter of the pane.
   await open($, 'planning')

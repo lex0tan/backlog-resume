@@ -3,7 +3,7 @@
   "owner": { "name": "claude-backlog contributors" },
   "plugins": [
     {
-      "name": "backlog",
+      "name": "backlogs",
       "source": "./",
       "description": "Resume work from a Markdown backlog: verified status, one next step, and a side panel to pick items."
     }

@@ -14,9 +14,9 @@ import { loadStrings, t } from './strings'
 export const PANE = 'backlog'
 export const PAGE = 8
 
-export const board = atom({ plugin: 'backlog', key: 'board' } as const, null)
-export const view = atom({ plugin: 'backlog', key: 'view' } as const, { mode: 'projects' })
-export const strings = atom({ plugin: 'backlog', key: 'strings' } as const, null)
+export const board = atom({ plugin: 'backlogs', key: 'board' } as const, null)
+export const view = atom({ plugin: 'backlogs', key: 'view' } as const, { mode: 'projects' })
+export const strings = atom({ plugin: 'backlogs', key: 'strings' } as const, null)
 
 type GitEntry = { project: string; status: string; branch?: string | null; commit?: { hash: string } | null; dirty?: { path: string }[] }
 type GitOut = { status: string; projects?: GitEntry[] }

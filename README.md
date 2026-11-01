@@ -3,12 +3,12 @@
 <p align="center">Every new session starts cold: you re-explain what is done, what is blocked and what is next.<br>claude-backlog checks your <code>TODO.md</code> against git and tells Claude where you really are, with one next step.</p>
 
 <p align="center">
-  <img src=".github/panel.gif" alt="The /backlog panel in Claude Code: agenda, projects, a blocked item with its parts, Unblock first, Waiting on you, a new item added and closed, then Work on it with the status line bar filling as Claude ticks the parts" width="900">
+  <img src=".github/panel.gif" alt="The /backlogs panel in Claude Code: agenda, projects, a blocked item with its parts, Unblock first, Waiting on you, a new item added and closed, then Work on it with the status line bar filling as Claude ticks the parts" width="900">
 </p>
 
 ```
 /plugin marketplace add lex0tan/claude-backlog
-/plugin install backlog@claude-backlog
+/plugin install backlogs@claude-backlog
 ```
 
 <p align="center">
@@ -18,7 +18,7 @@
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey" alt="macOS, Linux, Windows">
 </p>
 
-> **claude-backlog** is a Claude Code plugin (command: `/backlog`) that reads the `TODO.md` files you already have,
+> **claude-backlog** is a Claude Code plugin (command: `/backlogs`) that reads the `TODO.md` files you already have,
 > checks them against git and the repository, and tells Claude where you really are.
 > No server, no account, no database: the backlog lives only in your files.
 
@@ -46,7 +46,7 @@ claude-backlog fixes the starting point, not the way you write:
 - 🎨 **Live status line**: the item in progress beside the prompt, in colour, with a bar of its parts that fills as Claude ticks them and the time spent
 - 🔒 **Multi-session safe**: per-session active item, heartbeat, orphan detection, resume or release; backlog files written atomically under a per-file lock
 - 🛡️ **Guards**: the session reads only its item's files, backlog edits are re-checked, commits are reminded to cite the item ID
-- 🔁 **Adopts what you have**: `/backlog adopt` proposes how to bring existing notes into the model, nothing is written until you agree, and a file git cannot restore is copied aside first
+- 🔁 **Adopts what you have**: `/backlogs adopt` proposes how to bring existing notes into the model, nothing is written until you agree, and a file git cannot restore is copied aside first
 - 🌍 **Languages**: English and Italian included, add yours by copying one JSON file
 - 🧩 **Scriptable**: the script behind it is a plain Node CLI that prints JSON and uses only the standard library
 
@@ -57,28 +57,28 @@ without it item ages fall back to file times and commit checks are skipped.
 
 ```
 /plugin marketplace add lex0tan/claude-backlog
-/plugin install backlog@claude-backlog
+/plugin install backlogs@claude-backlog
 ```
 
 or from a shell:
 
 ```
 claude plugin marketplace add lex0tan/claude-backlog
-claude plugin install backlog@claude-backlog
+claude plugin install backlogs@claude-backlog
 ```
 
 The desktop app installs it from the same marketplace.
 
 ## Quick start
 
-1. In your project folder run `/backlog init`. It creates a `TODO.md` (and a `.backlog.json`) in the model below.
-   Already have notes? `/backlog adopt` finds backlog-like files and proposes how to bring them into the model.
-2. Run `/backlog` to open the panel, or ask in plain words:
+1. In your project folder run `/backlogs init`. It creates a `TODO.md` (and a `.backlog.json`) in the model below.
+   Already have notes? `/backlogs adopt` finds backlog-like files and proposes how to bring them into the model.
+2. Run `/backlogs` to open the panel, or ask in plain words:
 
    ```
-   /backlog resume the website
-   /backlog plan API
-   /backlog do API-002
+   /backlogs resume the website
+   /backlogs plan API
+   /backlogs do API-002
    ```
 
 3. Claude answers with the verified state and one next step. When you start an item, it becomes the session's
@@ -147,7 +147,7 @@ A backlog grows in three steps; every step is plain Markdown and the plugin read
 
 Rules the plugin relies on:
 
-- **A finished item is removed.** History lives in `git log`; the file only holds what is open. `/backlog` removes an item with the `done` command and moves `Next:` along. With `archive` set, `done` also keeps the item in a file per month.
+- **A finished item is removed.** History lives in `git log`; the file only holds what is open. `/backlogs` removes an item with the `done` command and moves `Next:` along. With `archive` set, `done` also keeps the item in a file per month.
 - **IDs** are uppercase words and a number of three or more digits: `SHOP-002`, `SHOP-API-001`, `X-1000`.
 - **IDs are unique in the workspace.** Use `project:ID` to name one when in doubt. `split` renumbers a flat backlog into workstreams (`SHOP-001` becomes `SHOP-API-001`) and keeps the old ID in a `Was:` line so old commits still match.
 - **Types** go in backticks after the ID: `[code]`, `[content]`, `[decision]`, `[blocked]`… Any word works; `decision` and `blocked` have a meaning, see below.
@@ -159,7 +159,7 @@ Rules the plugin relies on:
 
 ## Commands
 
-`/backlog` opens the panel. `/backlog <mode> <request>` runs the `session` skill:
+`/backlogs` opens the panel. `/backlogs <mode> <request>` runs the `session` skill:
 
 | Mode | What it does |
 |---|---|
@@ -235,9 +235,9 @@ To add a language, copy `lang/en.json` to `lang/<code>.json` and translate the k
 
 ## The panel
 
-`/backlog` shows the agenda (items with a `From:` date), then projects → areas → types → items. From an item you can read its detail, see what blocks it and what it unblocks, work on it, or mark it done. **Unblock first** lists the items that hold up most others, **New item** appends one, and a search box finds items by ID or words. **Waiting on you** lists decisions and your own steps.
+`/backlogs` shows the agenda (items with a `From:` date), then projects → areas → types → items. From an item you can read its detail, see what blocks it and what it unblocks, work on it, or mark it done. **Unblock first** lists the items that hold up most others, **New item** appends one, and a search box finds items by ID or words. **Waiting on you** lists decisions and your own steps.
 
-**Work on it** sends Claude the whole item in one prompt and makes it this session's active item. When the model removes it from the file the session closes it and reports the files left uncommitted; the workspace view counts the items closed today. **Stop working on it** lets go of the item without closing it, and an item whose file disappears is let go on its own. `/backlog do <ID>` takes the item the same way.
+**Work on it** sends Claude the whole item in one prompt and makes it this session's active item. When the model removes it from the file the session closes it and reports the files left uncommitted; the workspace view counts the items closed today. **Stop working on it** lets go of the item without closing it, and an item whose file disappears is let go on its own. `/backlogs do <ID>` takes the item the same way.
 
 **Keys.** The arrows (or Tab) move the highlight and Enter opens a row or presses a button; Esc closes the panel. Every row has a shortcut shown before it: a digit for projects, areas, types and items, a letter for the agenda. Buttons have one too:
 
@@ -261,7 +261,7 @@ The terminal and the desktop app draw it in colour after the line Claude Code an
 
 ### Several sessions
 
-Each session keeps its active item in the plugin's store with a heartbeat every minute. An item another live session holds is marked *in progress elsewhere* and cannot be taken, from the panel or with `/backlog do`; the modes also tell the skill which items to leave alone. Items are matched by file, so it does not matter which folder each session started from. If a session goes silent for `lockMinutes` its item becomes an **orphan**: the next session in the same workspace is told, and the panel offers **Resume** or **Release**. Orphans are never taken automatically. A `/clear` may give the session a new ID: the item then shows as an orphan of your own session, and **Resume** takes it back (it is offered while the session holds no item of its own). Entries of sessions silent for a month are deleted when a session starts.
+Each session keeps its active item in the plugin's store with a heartbeat every minute. An item another live session holds is marked *in progress elsewhere* and cannot be taken, from the panel or with `/backlogs do`; the modes also tell the skill which items to leave alone. Items are matched by file, so it does not matter which folder each session started from. If a session goes silent for `lockMinutes` its item becomes an **orphan**: the next session in the same workspace is told, and the panel offers **Resume** or **Release**. Orphans are never taken automatically. A `/clear` may give the session a new ID: the item then shows as an orphan of your own session, and **Resume** takes it back (it is offered while the session holds no item of its own). Entries of sessions silent for a month are deleted when a session starts.
 
 Writes are safe across sessions too. The script is the only thing that writes backlog files: it writes to a temporary file and renames it over the old one, and `done` and `add` hold a lock on the file while they read and rewrite it (a lock older than 30 seconds is taken over). Two sessions closing or adding items in the same file never lose a change or get the same ID.
 
@@ -274,7 +274,7 @@ Writes are safe across sessions too. The script is the only thing that writes ba
 
 - **Programs it runs.** `node` runs the plugin's own `scripts/backlog.mjs` (reads and writes your backlog files, no network), and `git` runs read-only queries (`log`, `blame`, `status`, `ls-files`, `branch`, `rev-parse`) on the current workspace to date items and check commits. Nothing else is started.
 - **What it sends.** Nothing leaves your machine: no network calls, no telemetry, no account. It reads no credentials or environment secrets.
-- **Prompts it submits.** `/backlog <mode> <request>` and the panel's *Work on it* submit one prompt as if you had typed it: the mode's instructions, the item's text and the names of its backlog files. Nothing else is added to your prompts; the only other text it adds to the session is the check results after a backlog edit and the commit reminder.
+- **Prompts it submits.** `/backlogs <mode> <request>` and the panel's *Work on it* submit one prompt as if you had typed it: the mode's instructions, the item's text and the names of its backlog files. Nothing else is added to your prompts; the only other text it adds to the session is the check results after a backlog edit and the commit reminder.
 - **What it stores.** Session state (active item, heartbeat, a count of closed items) in the plugin's own store on your machine.
 
 ## Guards

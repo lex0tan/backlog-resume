@@ -1,4 +1,4 @@
-// `summary`: one line of numbers per project, for `/backlog` without a scope.
+// `summary`: one line of numbers per project, for `/backlogs` without a scope.
 
 import { gitState } from '../git.mjs'
 import { byWhen } from '../model.mjs'

@@ -21,7 +21,7 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
   // The phone has no text fields: no search and no new item there.
   const Input = 'Input' in els ? els.Input : null
   const { board: loaded, view: v, strings: s } = await snapshot($)
-  if (!loaded || !s) return <Text dimColor>/backlog</Text>
+  if (!loaded || !s) return <Text dimColor>/backlogs</Text>
   // Items other live sessions hold are marked; silent sessions of this workspace leave orphans to resume or release.
   const held = await locks($, Date.now(), loaded.lockMinutes * 60_000, loaded.root)
   const b: Board = { ...loaded, items: loaded.items.map(i => { const l = held.elsewhere.get(itemLockKey(i, loaded.root)); return l ? { ...i, lockedBy: l.sessionId } : i }) }

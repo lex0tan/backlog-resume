@@ -7,11 +7,11 @@ import { CWD, FILE, MIN, PANE, TURN, ago, entry, setup } from './fixtures/world'
 const colorOf = async (ui: { findAll: (q: { type: string }) => Promise<{ text: string; props: Record<string, unknown> }[]> }, text: string) =>
   (await ui.findAll({ type: 'Text' })).filter(f => f.text === text).at(-1)?.props.color
 
-const HINT = { plugin: 'backlog', component: 'PromptHint', props: { hint: '? for shortcuts', isDraft: false, isWorking: false } } as const
+const HINT = { plugin: 'backlogs', component: 'PromptHint', props: { hint: '? for shortcuts', isDraft: false, isWorking: false } } as const
 
 type $T = Parameters<TestBody>[0]
 
-const open = ($: $T) => $.command.run({ command: 'backlog', args: '' } as never)
+const open = ($: $T) => $.command.run({ command: 'backlogs', args: '' } as never)
 
 test('an item one session takes is in progress elsewhere for another, which cannot work on it', async ($, on) => {
   const { who, seen, store } = setup(on)
@@ -80,7 +80,7 @@ test('Release deletes the orphan entry without taking the item', async ($, on) =
 test('a session resumed under the same ID finds its own item, however old', async ($, on) => {
   const { seen, store } = setup(on, { 'active:A': entry('A', { heartbeatAt: ago(60) }) })
   await $.session.start({ cwd: CWD, surface: 'terminal', isInteractive: true })
-  expect(seen.toasts).toEqual(['In progress: shop:API-002. Run /backlog:session to resume or close it.'])
+  expect(seen.toasts).toEqual(['In progress: shop:API-002. Run /backlogs:session to resume or close it.'])
   await open($)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   expect(await ui.find({ type: 'Text', text: /Left unfinished/ })).toBeUndefined()
@@ -143,7 +143,7 @@ test('a surface without the prompt hint gets the plain status line', async ($, o
 test('without an item in progress or a done line the prompt hint is the engine own', async ($, on) => {
   setup(on)
   const ui = await $.ui.mount({ ...HINT, surface: 'terminal' })
-  expect(await ui.find({ type: 'Text', text: /backlog/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /backlogs/ })).toBeUndefined()
   await ui.unmount()
 })
 

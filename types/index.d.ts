@@ -97,6 +97,6 @@ export type Strings = Record<string, string>
 
 declare module 'claude-code' {
   interface PluginState {
-    backlog: { board: Board | null; view: View; active: Active | null; finished: Finished | null; line: Segment[] | null; strings: Strings | null; files: FileSet | null }
+    backlogs: { board: Board | null; view: View; active: Active | null; finished: Finished | null; line: Segment[] | null; strings: Strings | null; files: FileSet | null }
   }
 }
