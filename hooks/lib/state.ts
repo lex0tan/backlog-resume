@@ -6,6 +6,8 @@ import type { EngineInterface } from 'claude-code'
 import type { Board, BoardProject, Strings, View } from '../../types'
 import { collect, startView, workstreamsOf } from './board'
 import type { Listed } from './board'
+import { backlogFiles } from './guards'
+import { relativeTo } from './paths'
 import { runScript } from './script'
 import { loadStrings, t } from './strings'
 
@@ -33,6 +35,8 @@ export async function load($: EngineInterface, filter: string): Promise<{ board:
   const s = await loadStrings($, language)
   const items = listed.status === 'error' ? [] : collect(listed, filter)
   const gits = git.projects ?? []
+  // The file list is read again with every board: an item added or closed may have created or removed a file.
+  const set = await backlogFiles($, true)
   const projects: BoardProject[] = (listed.projects ?? []).map(p => ({ rel: p.rel, name: p.name, git: gitLine(gits.find(g => g.project === p.rel), s) }))
   const next: Board = {
     filter, items, projects, language,
@@ -42,7 +46,7 @@ export async function load($: EngineInterface, filter: string): Promise<{ board:
     multi: projects.length > 1,
     typeOrder: listed.typeOrder ?? [],
     dirty: gits.flatMap(g => (g.dirty ?? []).map(d => d.path)),
-    indexFiles: [],
+    indexFiles: set ? set.projects.flatMap(p => p.indexes).map(f => relativeTo(set.root, f)).filter((r): r is string => r !== null) : [],
     error: listed.status === 'error' ? listed.message ?? t(s, 'scriptError')
       : items.length === 0 ? (filter ? t(s, 'noItemsFor', { filter }) : t(s, 'noItems')) : null,
   }

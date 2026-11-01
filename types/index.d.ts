@@ -82,11 +82,16 @@ export type Active = {
 export type Closed = { id: string; at: number; minutes: number | null }
 // The last closed item, shown as a done line in the status line until dismissed.
 export type Finished = { id: string; minutes: number | null; pending: number }
+// `files` output: every backlog file of a project (absolute POSIX), and which of them are indexes.
+export type ProjectFiles = { rel: string; root: string; files: string[]; indexes: string[] }
+export type FileSet = { root: string; language: string; projects: ProjectFiles[] }
+// One finding of `check`.
+export type Issue = { level: 'error' | 'warn' | 'info'; code: string; project: string | null; file: string | null; message: string }
 // Panel texts: `panel` section of lang/<language>.json.
 export type Strings = Record<string, string>
 
 declare module 'claude-code' {
   interface PluginState {
-    backlog: { board: Board | null; view: View; active: Active | null; finished: Finished | null; strings: Strings | null }
+    backlog: { board: Board | null; view: View; active: Active | null; finished: Finished | null; strings: Strings | null; files: FileSet | null }
   }
 }

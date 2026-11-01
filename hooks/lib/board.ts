@@ -223,7 +223,3 @@ export function finishedText(f: Finished, strings: Strings): string {
 // Files changed since the item started: they were not among the local changes when work began.
 export const newlyDirty = (before: readonly string[] | undefined, now: readonly string[]) =>
   before ? now.filter(p => !before.includes(p)) : [...now]
-
-// PLACEHOLDER (Task 17 replaces it with `backlogFiles`, built from the CLI's `files` command):
-// is this workspace-relative path one of the known backlog files?
-export const isBacklog = (known: readonly string[], rel: string) => known.some(k => k.toLowerCase() === rel.toLowerCase())

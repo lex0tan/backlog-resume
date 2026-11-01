@@ -1,12 +1,16 @@
 import type { Register } from 'claude-code'
 
 import { PANE, load, startAt } from './lib/state'
-import { HEARTBEAT_MS, heartbeat, refreshActive, restore } from './lib/session'
+import { afterBacklogEdit, backlogProject, checkIssues, commitWarning, forgetFiles, headOf, readDenial } from './lib/guards'
+import { HEARTBEAT_MS, heartbeat, mineOf, refreshActive, restore } from './lib/session'
 import { t } from './lib/strings'
 import { renderPane } from './pane'
 
 // Wiring only: events -> modules under hooks/lib and hooks/pane.tsx.
 const MODES = ['audit', 'resume', 'plan', 'do', 'adopt', 'init', 'split']
+// A `git commit` inside one command (not across a pipe, `;`, `&` or a new line).
+const GIT_COMMIT = /\bgit\b[^|;&\n]*\bcommit\b/
+const EDITORS =['Edit', 'Write', 'MultiEdit', 'NotebookEdit'] as const
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -39,6 +43,41 @@ export const register: Register = on => {
     await refreshActive($)
     return next(e)
   })
+
+  // Read guard: with an active item the prompt carries everything, so other backlogs stay closed. A failing guard lets the call through.
+  for (const tool of ['Read', 'Grep'] as const) {
+    on('tool.call', { tool }, async ($, e, next) => {
+      const input = e as { file_path?: string; path?: string }
+      const deny = await readDenial($, tool === 'Read' ? input.file_path : input.path)
+      return deny ? { deny } : next(e)
+    }).catch(($, e, next) => next(e))
+  }
+
+  // Check after an edit of a backlog file: new issues go back to the model as context, never as a refusal.
+  for (const tool of EDITORS) {
+    on('tool.call', { tool }, async ($, e, next) => {
+      const input = e as { file_path?: string; notebook_path?: string }
+      const path = input.file_path ?? input.notebook_path
+      const project = path ? await backlogProject($, path) : null
+      if (!path || project === null) return next(e)
+      const before = await checkIssues($, project)
+      const result = await next(e)
+      await forgetFiles($)
+      if (result.result === undefined) return result
+      const text = await afterBacklogEdit($, path, before, await checkIssues($, project))
+      return text ? { ...result, context: [...(result.context ?? []), text] } : result
+    }).catch(($, e, next) => next(e))
+  }
+
+  // Commit reminder: with an active item, a commit that does not cite its ID is pointed out afterwards.
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    const own = GIT_COMMIT.test((e as { command?: string }).command ?? '') ? await mineOf($) : null
+    if (!own) return next(e)
+    const before = await headOf($, own)
+    const result = await next(e)
+    const text = result.result === undefined ? null : await commitWarning($, own, before)
+    return text ? { ...result, context: [...(result.context ?? []), text] } : result
+  }).catch(($, e, next) => next(e))
 
   on('command.run', { command: 'backlog' }, async ($, e) => {
     const args = e.args.trim()

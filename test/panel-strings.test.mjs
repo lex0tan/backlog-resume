@@ -8,7 +8,7 @@ const read = (path) => readFileSync(`${root}${path}`, 'utf8').replace(/^\uFEFF/,
 const panel = (code) => JSON.parse(read(`lang/${code}.json`)).panel
 const placeholders = (text) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort()
 
-const SOURCES = ['hooks/register.tsx', 'hooks/pane.tsx', 'hooks/lib/board.ts', 'hooks/lib/session.ts', 'hooks/lib/state.ts', 'hooks/lib/strings.ts']
+const SOURCES = ['hooks/register.tsx', 'hooks/pane.tsx', 'hooks/lib/board.ts', 'hooks/lib/guards.ts', 'hooks/lib/session.ts', 'hooks/lib/state.ts', 'hooks/lib/strings.ts']
 
 /** Panel keys the hooks code asks for: direct `t(strings, 'key')` / `tr('key')` calls and `cond ? 'a' : 'b'` keys inside them. */
 function usedKeys() {

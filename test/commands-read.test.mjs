@@ -251,6 +251,11 @@ test('files: backlog files of each project, subproject indexes included, exclude
     assert.ok(got.includes(abs(rel)), rel)
   }
   assert.ok(!got.some((f) => f.endsWith('ghost.md')), 'a missing file is not listed')
+  assert.equal(r.root, root.replaceAll('\\', '/'))
+  assert.equal(r.language, 'en')
+  const idx = r.projects[0].indexes
+  assert.ok(idx.includes(abs('TODO.md')) && idx.includes(abs('projects/mobile/TODO.md')), 'parents are indexes')
+  assert.ok(!idx.includes(abs('todo/api.md')), 'a leaf file is not an index')
   assert.equal(new Set(got).size, got.length)
   const saved = process.env.PATH
   process.env.PATH = ''

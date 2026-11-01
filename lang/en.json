@@ -166,6 +166,11 @@
     "canDoLine": "Claude can do · {n}",
     "doneTodayLine": "Done today · {n}",
     "released": "{ref} released",
-    "resumed": "{ref} resumed"
+    "resumed": "{ref} resumed",
+    "guardRead": "backlog: item {ref} is active and its prompt already carries it, so no other backlogs ({file}). Only these stay open: {allowed}. If another backlog is really needed, ask the user.",
+    "guardCheck": "backlog check after editing {file}: {n} new issue(s): {issues}",
+    "guardCheckToast": "Backlog check: {n} new after editing {file}",
+    "guardCommit": "backlog: the commit message does not cite {ref}. Item IDs go in the commit message: that is how closing and history are traced.",
+    "guardCommitToast": "Commit without {ref}"
   }
 }

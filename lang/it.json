@@ -169,6 +169,11 @@
     "canDoLine": "Claude può fare · {n}",
     "doneTodayLine": "Fatti oggi · {n}",
     "released": "{ref} liberato",
-    "resumed": "{ref} ripreso"
+    "resumed": "{ref} ripreso",
+    "guardRead": "backlog: l'item {ref} è attivo e il prompt lo porta già, quindi niente altri backlog ({file}). Restano aperti solo: {allowed}. Se serve davvero un altro backlog, chiedilo all'utente.",
+    "guardCheck": "controllo del backlog dopo la modifica di {file}: {n} nuovi problemi: {issues}",
+    "guardCheckToast": "Controllo del backlog: {n} nuovi dopo la modifica di {file}",
+    "guardCommit": "backlog: il messaggio del commit non cita {ref}. Gli ID degli item vanno nel messaggio: così si ricostruiscono chiusura e storia.",
+    "guardCommitToast": "Commit senza {ref}"
   }
 }
