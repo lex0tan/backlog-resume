@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - Unreleased
 
+### Fixed
+- Backlog files are written atomically (temporary file, then rename) and `done` / `add` run under a per-file lock, so two sessions closing or adding items in the same file no longer overwrite each other or get the same ID. A lock older than 30 seconds is taken over.
+- One definition of an item ID (`scripts/lib/ids.mjs`): a number of three or more digits everywhere, so `X-1000` is read the same way by every command.
+
 ### Added
 - Plugin manifest and marketplace entry; standard-library Node script (`scripts/backlog.mjs`) that prints JSON.
 - Backlog model in Markdown: flat file, indexed workstreams, nested subprojects; items with types, `Done when:`, `Depends on:`, `Blocks:`, `From:`, `Was:` and parts (`User:` steps).

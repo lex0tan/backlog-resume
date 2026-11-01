@@ -2,6 +2,7 @@
 
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { join, posix as ppath } from 'node:path'
+import { ITEM_ID, ITEM_ID_TOKEN } from './ids.mjs'
 import { identity } from './paths.mjs'
 import { AmbiguousIdError, ItemNotFoundError } from './errors.mjs'
 import { loadKeywords, message } from './i18n.mjs'
@@ -10,9 +11,7 @@ import { missingRefs } from './refs.mjs'
 import { norm, posix } from './text.mjs'
 import { allItems, ancestors, isAncestor, nodeForId, subprojectOf } from './tree.mjs'
 
-const ITEM_ID = /^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d{3}$/
 // An item ID ends in a number; a bare all-caps word or a workstream ID may still name a project.
-const ITEM_ID_TOKEN = /(?:[A-Za-z0-9._-]+:)?\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d+\b/g
 const ID_TOKEN = /(?:([A-Za-z0-9._-]+):)?\b([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*)\b/g
 
 /** Name used to qualify IDs (`project:ID`) and reported in results: the folder relative to the workspace. */

@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { InvalidInputError } from '../errors.mjs'
 import { lastModified } from '../git.mjs'
+import { ITEM_ID } from '../ids.mjs'
 import { message } from '../i18n.mjs'
 import { missingRefs } from '../refs.mjs'
 import { kwOf } from '../routing.mjs'
@@ -12,7 +13,6 @@ import { leaves } from '../tree.mjs'
 import { keyOf, readContext, todayIso, wsPath } from './shared.mjs'
 import { overview } from './overview.mjs'
 
-const ITEM_ID = /-\d{3}$/
 const relOf = (key) => key.slice(0, key.indexOf(':'))
 
 /**

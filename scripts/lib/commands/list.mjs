@@ -2,12 +2,12 @@
 
 import { InvalidInputError } from '../errors.mjs'
 import { unmerged } from '../git.mjs'
+import { ITEM_ID } from '../ids.mjs'
 import { byWhen } from '../model.mjs'
 import { norm, posix } from '../text.mjs'
 import { ancestors, leaves, subprojectOf } from '../tree.mjs'
 import { readContext, todayIso, wsPath } from './shared.mjs'
 
-const ITEM_ID = /^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d{3}$/
 
 /** Projects named by `wanted` (name, folder or alias, ignoring case and accents). */
 function selectProjects(ws, wanted) {

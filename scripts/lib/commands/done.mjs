@@ -5,7 +5,8 @@ import { ItemNotFoundError } from '../errors.mjs'
 import { buildGraph } from '../graph.mjs'
 import { keywordRegexes } from '../i18n.mjs'
 import { kwOf, projectItems, resolveId } from '../routing.mjs'
-import { readText, writeText } from '../write.mjs'
+import { parseItems } from '../model.mjs'
+import { editText, UNCHANGED } from '../write.mjs'
 import { keyOf, wsPath } from './shared.mjs'
 
 const NEXT_NONE = '—'
@@ -21,17 +22,18 @@ function firstUnblocked(ws, project, file) {
 /** Replaces the ID of the first "Next" line in place, keeping the keyword and the formatting around it. */
 function pointNext(path, kw, id, next) {
   const re = keywordRegexes(kw).next
-  const { lines, eol, bom } = readText(path)
-  const at = lines.findIndex((l) => re.test(l))
-  if (at < 0) return false
-  lines[at] = lines[at].replace(re, (whole, found) => {
-    if (found !== id) return whole
-    const ticked = whole.endsWith('`')
-    const body = whole.replace(new RegExp(`\`?${esc(found)}\`?$`), '')
-    return next ? `${body}${ticked ? `\`${next}\`` : next}` : `${body}${NEXT_NONE}`
+  const found = editText(path, ({ lines }) => {
+    const at = lines.findIndex((l) => re.test(l))
+    if (at < 0) return UNCHANGED
+    lines[at] = lines[at].replace(re, (whole, found) => {
+      if (found !== id) return whole
+      const ticked = whole.endsWith('`')
+      const body = whole.replace(new RegExp(`\`?${esc(found)}\`?$`), '')
+      return next ? `${body}${ticked ? `\`${next}\`` : next}` : `${body}${NEXT_NONE}`
+    })
+    return true
   })
-  writeText(path, lines, eol, bom)
-  return true
+  return found === true
 }
 
 /**
@@ -45,11 +47,14 @@ export function done(ws, ref) {
   if (!item) throw new ItemNotFoundError(ref)
   const kw = kwOf(project)
   const path = join(project.root, item.file)
-  const { lines, eol, bom } = readText(path)
-  let end = item.line + 1
-  while (end < lines.length && /^\s+\S/.test(lines[end])) end++
-  lines.splice(item.line, end - item.line)
-  writeText(path, lines, eol, bom)
+  // The workspace was parsed before this call: find the item again in the file as it is now, so a concurrent edit never shifts the lines removed.
+  editText(path, (state) => {
+    const now = parseItems(state.lines.join('\n'), kw).find((x) => x.id === item.id)
+    if (!now) throw new ItemNotFoundError(ref)
+    let end = now.line + 1
+    while (end < state.lines.length && /^\s+\S/.test(state.lines[end])) end++
+    state.lines.splice(now.line, end - now.line)
+  })
 
   const next = firstUnblocked(ws, project, item.file)
   const indexes = []

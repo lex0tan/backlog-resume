@@ -2,10 +2,10 @@
 
 import { join } from 'node:path'
 import { InvalidInputError, WorkstreamNotFoundError } from '../errors.mjs'
-import { formatItem } from '../model.mjs'
+import { formatItem, parseItems } from '../model.mjs'
 import { kwOf, projectItems } from '../routing.mjs'
 import { leaves } from '../tree.mjs'
-import { readText, writeText } from '../write.mjs'
+import { editText } from '../write.mjs'
 import { pickProject, wsPath } from './shared.mjs'
 
 const TYPE = /^[\p{Ll}-]+$/u
@@ -33,12 +33,15 @@ export function add(ws, { project: projectName, workstream, type, text, doneWhen
   // Highest number among the project's items and the IDs kept in "Was:" lines, so a closed ID is never reused.
   const taken = new RegExp(`^${esc(node.id)}-(\\d{3,})$`)
   const nums = projectItems(project).flatMap((x) => [x.id, ...x.was]).map((id) => id?.match(taken)?.[1]).filter(Boolean).map(Number)
-  const id = `${node.id}-${String(Math.max(0, ...nums) + 1).padStart(3, '0')}`
 
   const path = join(project.root, node.file)
-  const { lines, eol, bom } = readText(path)
-  while (lines.length && lines[lines.length - 1].trim() === '') lines.pop()
-  lines.push(...formatItem({ id, type, text: clean, doneWhen: doneWhen?.trim() || undefined }, kw), '')
-  writeText(path, lines, eol, bom)
+  // The number is taken inside the lock, from the file as it is now as well, so two sessions adding at once never get the same ID.
+  const id = editText(path, ({ lines }) => {
+    const fresh = parseItems(lines.join('\n'), kw).flatMap((x) => [x.id, ...x.was]).map((x) => x?.match(taken)?.[1]).filter(Boolean).map(Number)
+    const next = `${node.id}-${String(Math.max(0, ...nums, ...fresh) + 1).padStart(3, '0')}`
+    while (lines.length && lines[lines.length - 1].trim() === '') lines.pop()
+    lines.push(...formatItem({ id: next, type, text: clean, doneWhen: doneWhen?.trim() || undefined }, kw), '')
+    return next
+  })
   return { status: 'added', id, project: project.rel, file: wsPath(project, node.file) }
 }
