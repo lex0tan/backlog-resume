@@ -9,7 +9,7 @@ import type { EngineInterface } from 'claude-code'
 
 import type { Active, Board, Closed, Finished, Item } from '../../types'
 import { finishedText, newlyDirty, partsOf, statusText, stillOpen } from './board'
-import { relativeTo } from './paths'
+import { normPath, relativeTo } from './paths'
 import { runScript } from './script'
 import { loadStrings, t } from './strings'
 
@@ -31,10 +31,15 @@ export type Locks = {
   orphans: Active[]
 }
 
-/** How an item is keyed across sessions: its project folder and ID. */
-export const lockKey = (a: Pick<Active, 'project' | 'id'>) => `${a.project}:${a.id}`
+/**
+ * How an item is keyed across sessions: its file and ID. Never the project folder, which is relative to the root of
+ * each session's own workspace (the same item is `shop:ID` from one folder and `.:ID` from another).
+ */
+export const lockKey = (a: Pick<Active, 'file' | 'id'>) => `${normPath(a.file)}#${a.id}`
+/** The key of a board item, whose file is relative to the workspace root. */
+export const itemLockKey = (item: Pick<Item, 'file' | 'id'>, root: string) => lockKey({ file: `${root}/${item.file}`, id: item.id })
 /** How an entry is named to the user. */
-export const labelOf = (a: Pick<Active, 'project' | 'id'>) => (a.project === '.' ? a.id : lockKey(a))
+export const labelOf = (a: Pick<Active, 'project' | 'id'>) => (a.project === '.' ? a.id : `${a.project}:${a.id}`)
 
 const isActive = (v: unknown): v is Active => {
   const a = v as Partial<Active> | null | undefined
@@ -97,7 +102,7 @@ async function setFinished($: EngineInterface, value: Finished, strings: Record<
 /** This session starts the item. Null when another live session already holds it. */
 export async function takeItem($: EngineInterface, item: Item, board: Board, now = Date.now()): Promise<Active | null> {
   const held = await locks($, now, board.lockMinutes * 60_000, board.root)
-  if (held.elsewhere.has(lockKey(item))) return null
+  if (held.elsewhere.has(itemLockKey(item, board.root))) return null
   const value: Active = {
     id: item.id, project: item.project, file: `${board.root}/${item.file}`, text: item.text, language: board.language,
     startedAt: now, dirtyAtStart: board.dirty, sessionId: await $.session.id(), cwd: await $.session.cwd(), heartbeatAt: now,
@@ -117,7 +122,11 @@ export async function releaseItem($: EngineInterface) {
 /** Says this session is alive. */
 export async function heartbeat($: EngineInterface, now = Date.now()) {
   const a = await mineOf($)
-  if (a) await $.store.set(await myKey($), { ...a, heartbeatAt: now })
+  if (!a) return
+  // The item may have been released while the entry was read: write only if it is still the same one.
+  const key = await myKey($)
+  const current = await mineOf($)
+  if (current && current.id === a.id && current.startedAt === a.startedAt) await $.store.set(key, { ...current, heartbeatAt: now })
 }
 
 /** Takes an orphan over: its entry moves under this session's ID. */
@@ -152,8 +161,11 @@ export async function refreshActive($: EngineInterface, now = Date.now()) {
   try {
     text = (await $.fs.read(a.file, { as: 'text' })) as string
   } catch (err) {
-    // File moved or unreadable: nothing is decided, the item stays active.
-    $.ui.log(`backlog: cannot read ${a.file} for ${labelOf(a)}: ${err instanceof Error ? err.message : String(err)}`)
+    const reason = err instanceof Error ? err.message : String(err)
+    $.ui.log(`backlog: cannot read ${a.file} for ${labelOf(a)}: ${reason}`)
+    // The file is gone (moved, deleted): the item cannot be finished any more, so it is freed without being recorded as closed.
+    // Any other read error is transient and decides nothing.
+    if (!(await $.fs.exists(a.file).catch(() => true))) await releaseItem($)
     return
   }
   if (stillOpen(text, a.id)) {
@@ -167,7 +179,7 @@ export async function refreshActive($: EngineInterface, now = Date.now()) {
   const git = (await runScript($, ['git'])) as GitOut
   const dirty = git.status === 'error' || git.status === 'no-git' ? [] : (git.projects ?? []).flatMap(p => (p.dirty ?? []).map(d => d.path))
   const pending = newlyDirty(a.dirtyAtStart, dirty).length
-  const value: Finished = { id: a.id, minutes, pending }
+  const value: Finished = { id: a.id, minutes, pending, language: a.language }
   $.ui.toast(finishedText(value, strings), { timeoutMs: pending ? 10_000 : 5000 })
   await setFinished($, value, strings)
 }
@@ -183,7 +195,7 @@ export async function restore($: EngineInterface, now = Date.now()) {
   } else {
     const last = await $.store.get(`${FINISHED}${await $.session.id()}`)
     const f = last as Finished | undefined
-    if (f?.id) await setFinished($, f, await loadStrings($, 'en'))
+    if (f?.id) await setFinished($, f, await loadStrings($, f.language ?? 'en'))
   }
   // The root and the time limit come from the workspace: it is read only when someone else left an entry.
   const me = await $.session.id()

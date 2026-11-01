@@ -48,7 +48,8 @@ export async function load($: EngineInterface, filter: string): Promise<{ board:
     dirty: gits.flatMap(g => (g.dirty ?? []).map(d => d.path)),
     indexFiles: set ? set.projects.flatMap(p => p.indexes).map(f => relativeTo(set.root, f)).filter((r): r is string => r !== null) : [],
     error: listed.status === 'error' ? listed.message ?? t(s, 'scriptError')
-      : items.length === 0 ? (filter ? t(s, 'noItemsFor', { filter }) : t(s, 'noItems')) : null,
+      // An empty backlog is not an error: the pane offers to add the first item. Only a filter that finds nothing is reported.
+      : items.length === 0 && filter ? t(s, 'noItemsFor', { filter }) : null,
   }
   await update($, board, () => next)
   await update($, strings, () => s)

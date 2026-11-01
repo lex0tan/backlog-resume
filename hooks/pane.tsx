@@ -4,7 +4,7 @@ import type { Board, Item, Strings, View } from '../types'
 import { agenda, areas, dayLabel, findRef, groups, projects, promptFor, refOf, search, unblockers, whenMark } from './lib/board'
 import { runScript } from './lib/script'
 import { t } from './lib/strings'
-import { adoptOrphan, closedToday, dropOrphan, labelOf, lockKey, locks, mineOf, releaseItem, takeItem } from './lib/session'
+import { adoptOrphan, closedToday, dropOrphan, itemLockKey, labelOf, lockKey, locks, mineOf, releaseItem, takeItem } from './lib/session'
 import { PAGE, PANE, go, load, snapshot } from './lib/state'
 import type { Written } from './lib/state'
 
@@ -24,7 +24,7 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
   if (!loaded || !s) return <Text dimColor>/backlog</Text>
   // Items other live sessions hold are marked; silent sessions of this workspace leave orphans to resume or release.
   const held = await locks($, Date.now(), loaded.lockMinutes * 60_000, loaded.root)
-  const b: Board = { ...loaded, items: loaded.items.map(i => { const l = held.elsewhere.get(lockKey(i)); return l ? { ...i, lockedBy: l.sessionId } : i }) }
+  const b: Board = { ...loaded, items: loaded.items.map(i => { const l = held.elsewhere.get(itemLockKey(i, loaded.root)); return l ? { ...i, lockedBy: l.sessionId } : i }) }
   const doable = b.items.filter(i => !i.waiting)
   const waitingCount = b.items.length - doable.length
   const tr = (key: string, vars?: Record<string, string | number>) => t(s, key, vars)
@@ -55,34 +55,52 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
   })
 
   const doneToday = (await closedToday($)).length
-  const orphanRows = held.orphans.map(o => {
-    const key = lockKey(o)
-    return (
-      <Box key={`orphan-${key}`} flexDirection="row" gap={2}>
-        <Text color="yellow" wrap="truncate-end">{tr('leftUnfinished', { ref: labelOf(o) })}</Text>
-        <Button key={`resume-${key}`} hotkey="r" onPress={async () => {
-          const adopted = await adoptOrphan($, o)
+  // The item an entry points to, found by its file: the project folder is relative to whoever wrote the entry.
+  const itemOfEntry = (o: { file: string; id: string }) => b.items.find(i => itemLockKey(i, b.root) === lockKey(o))
+  const mineLine = held.mine && (
+    <Box key="mine" flexDirection="row" gap={2}>
+      <Text color="green" wrap="truncate-end">▶ {tr('workingOn', { ref: labelOf(held.mine) })}</Text>
+      <Button key="stop-home" hotkey="z" onPress={async () => {
+        await releaseItem($)
+        $.ui.toast(tr('released', { ref: labelOf(held.mine!) }), { timeoutMs: 4000 })
+        await load($, b.filter)
+      }}>{tr('btnStop')}</Button>
+    </Box>
+  )
+  // Resume replaces the session's own item, so it is offered only when the session holds none; hotkeys go to the first orphan.
+  const orphanRows = held.orphans.map((o, n) => (
+    <Box key={`orphan-${o.sessionId}`} flexDirection="row" gap={2}>
+      <Text color="yellow" wrap="truncate-end">{tr('leftUnfinished', { ref: labelOf(o) })}</Text>
+      {!held.mine && (
+        <Button key={`resume-${o.sessionId}`} hotkey={n === 0 ? 'r' : undefined} onPress={async () => {
+          const hit = itemOfEntry(o)
+          if (!hit) {
+            // Closed or removed meanwhile: nothing to resume, the entry is only dropped.
+            await dropOrphan($, o)
+            $.ui.toast(tr('gone', { id: labelOf(o) }), { timeoutMs: 4000 })
+            await load($, b.filter)
+            return
+          }
+          await adoptOrphan($, o)
           $.ui.toast(tr('resumed', { ref: labelOf(o) }), { timeoutMs: 4000 })
-          const hit = itemOf(b, adopted.id, adopted.project)
-          if (!hit) return
           await $.ui.close({ id: PANE })
           await $.prompt.submit({ text: promptFor(hit, s, b.indexFiles), asUser: true })
         }}>{tr('btnResume')}</Button>
-        <Button key={`release-${key}`} hotkey="x" onPress={async () => {
-          await dropOrphan($, o)
-          $.ui.toast(tr('released', { ref: labelOf(o) }), { timeoutMs: 4000 })
-          await load($, b.filter)
-        }}>{tr('btnRelease')}</Button>
-      </Box>
-    )
-  })
+      )}
+      <Button key={`release-${o.sessionId}`} hotkey={n === 0 ? 'x' : undefined} onPress={async () => {
+        await dropOrphan($, o)
+        $.ui.toast(tr('released', { ref: labelOf(o) }), { timeoutMs: 4000 })
+        await load($, b.filter)
+      }}>{tr('btnRelease')}</Button>
+    </Box>
+  ))
 
   if (v.mode === 'projects' || (v.mode === 'areas' && v.project === undefined)) {
     const { today, tomorrow } = agenda(b.items)
     const late = today.filter(i => i.when?.state === 'overdue').length
     const tone = late ? 'red' : today.length ? 'yellow' : 'green'
     const row = (i: Item, n: number) => (
-      <Button key={`ag-${refOf(i)}`} plain hotkey={['q', 'w', 'e', 't', 'u'][n]} onPress={() => go($, { mode: 'item', id: i.id, project: i.project, back: v })}>
+      <Button key={`ag-${refOf(i)}`} plain hotkey={['q', 'e', 't', 'u', 'i'][n]} onPress={() => go($, { mode: 'item', id: i.id, project: i.project, back: v })}>
         {line(i).slice(0, 92)}
       </Button>
     )
@@ -118,7 +136,9 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
     return (
       <Box flexDirection="column">
         {header}
+        {mineLine}
         {orphanRows}
+        {b.items.length === 0 && <Text dimColor>{tr('noItemsYet')}</Text>}
         <Text bold>{tr('canDoLine', { n: doable.length })}</Text>
         <Text dimColor>{tr(v.mode === 'projects' ? 'pickProject' : 'pickArea', { n: doable.length })}</Text>
         {choices}
@@ -202,7 +222,7 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
             {`${b.multi ? `${owner(w)} · ` : ''}${w.id} · ${w.label}`}
           </Button>
         ))}
-        {ws && !v.type && b.typeOrder.map((type, n) => (
+        {ws && !v.type && (b.typeOrder.length ? b.typeOrder : tr('defaultTypes').split(',')).map((type, n) => (
           <Button key={`nt-${type}`} plain hotkey={n < 9 ? String(n + 1) : undefined} onPress={() => go($, { mode: 'new', project: ws.project, workstream: ws.id, type })}>{`[${type}]`}</Button>
         ))}
         {ws && v.type && Input && (
@@ -241,7 +261,7 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
           <Button key="yes" variant="primary" hotkey="y" onPress={async () => {
             const r = (await runScript($, ['done', refOf(item)])) as Written
             const own = await mineOf($)
-            if (r.status === 'done' && own && lockKey(own) === lockKey(item)) await releaseItem($)
+            if (r.status === 'done' && own && lockKey(own) === itemLockKey(item, b.root)) await releaseItem($)
             $.ui.toast(r.status === 'done'
               ? (r.next ? tr('removedNext', { id: item.id, next: r.next }) : tr('removed', { id: item.id }))
               : tr('notRemoved', { reason: r.message ?? r.status }), { timeoutMs: 4000 })
@@ -276,6 +296,13 @@ export async function renderPane($: EngineInterface, e: RenderInput) {
       {item.doneWhen && <Text color="green" wrap="wrap">{tr('doneWhenLine', { text: item.doneWhen })}</Text>}
       {item.lockedBy && <Text color="yellow" wrap="wrap">🔒 {tr('lockedElsewhere')}. {tr('lockedNote')}</Text>}
       <Box flexDirection="row" gap={2}>
+        {held.mine && lockKey(held.mine) === itemLockKey(item, b.root) && (
+          <Button key="stop" hotkey="x" onPress={async () => {
+            await releaseItem($)
+            $.ui.toast(tr('released', { ref: refOf(item) }), { timeoutMs: 4000 })
+            await go($, v.back)
+          }}>{tr('btnStop')}</Button>
+        )}
         {!item.lockedBy && <Button key="work" variant="primary" hotkey="l" autoFocus onPress={async () => {
           if (!(await takeItem($, item, b))) return
           await $.ui.close({ id: PANE })

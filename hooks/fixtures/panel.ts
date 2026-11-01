@@ -102,7 +102,12 @@ export const EN: Record<string, string> = {
   "guardCheck": "backlog check after editing {file}: {n} new issue(s): {issues}",
   "guardCheckToast": "Backlog check: {n} new after editing {file}",
   "guardCommit": "backlog: the commit message does not cite {ref}. Item IDs go in the commit message: that is how closing and history are traced.",
-  "guardCommitToast": "Commit without {ref}"
+  "guardCommitToast": "Commit without {ref}",
+  "workingOn": "Working on {ref}",
+  "btnStop": "Stop working on it",
+  "inProgressElsewhere": "Items other sessions are working on right now (do not propose or start them): {refs}.",
+  "defaultTypes": "code,content,decision",
+  "noItemsYet": "Nothing to do yet. Add the first item:"
 }
 
 // A second language for the tests: every English text with a marker in front, so a test can tell which file the pane read.

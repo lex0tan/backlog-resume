@@ -111,3 +111,20 @@ export async function commitWarning($: EngineInterface, own: Active, headBefore:
   $.ui.toast(t(strings, 'guardCommitToast', { ref: labelOf(own) }), { timeoutMs: 6000 })
   return t(strings, 'guardCommit', { ref: labelOf(own) })
 }
+
+type Settled = { result?: unknown; context?: readonly string[]; deny?: string }
+
+/**
+ * Runs an edit tool call. When the file is one of the backlog, `check --fast` runs before and after, and the issues the edit
+ * introduced travel back as context. The call itself is never held back or refused.
+ */
+export async function guardedEdit<R extends Settled>($: EngineInterface, path: string | undefined, run: () => Promise<R>): Promise<R> {
+  const project = path ? await backlogProject($, path) : null
+  if (!path || project === null) return run()
+  const before = await checkIssues($, project)
+  const result = await run()
+  await forgetFiles($)
+  if (result.result === undefined) return result
+  const text = await afterBacklogEdit($, path, before, await checkIssues($, project))
+  return text ? ({ ...result, context: [...(result.context ?? []), text] } as R) : result
+}

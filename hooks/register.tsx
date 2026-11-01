@@ -1,7 +1,8 @@
 import type { Register } from 'claude-code'
 
 import { PANE, load, startAt } from './lib/state'
-import { afterBacklogEdit, backlogProject, checkIssues, commitWarning, forgetFiles, headOf, readDenial } from './lib/guards'
+import { commitWarning, forgetFiles, guardedEdit, headOf, readDenial } from './lib/guards'
+import { modeRun } from './lib/modes'
 import { HEARTBEAT_MS, heartbeat, mineOf, refreshActive, restore } from './lib/session'
 import { t } from './lib/strings'
 import { renderPane } from './pane'
@@ -10,7 +11,8 @@ import { renderPane } from './pane'
 const MODES = ['audit', 'resume', 'plan', 'do', 'adopt', 'init', 'split']
 // A `git commit` inside one command (not across a pipe, `;`, `&` or a new line).
 const GIT_COMMIT = /\bgit\b[^|;&\n]*\bcommit\b/
-const EDITORS =['Edit', 'Write', 'MultiEdit', 'NotebookEdit'] as const
+// A command that runs the plugin's script (split, adopt write...) may create or remove backlog files.
+const RUNS_SCRIPT = /backlog\.mjs/
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -45,37 +47,28 @@ export const register: Register = on => {
   })
 
   // Read guard: with an active item the prompt carries everything, so other backlogs stay closed. A failing guard lets the call through.
-  for (const tool of ['Read', 'Grep'] as const) {
-    on('tool.call', { tool }, async ($, e, next) => {
-      const input = e as { file_path?: string; path?: string }
-      const deny = await readDenial($, tool === 'Read' ? input.file_path : input.path)
-      return deny ? { deny } : next(e)
-    }).catch(($, e, next) => next(e))
-  }
+  on('tool.call', { tool: 'Read' }, async ($, e, next) => {
+    const deny = await readDenial($, e.file_path)
+    return deny ? { deny } : next(e)
+  }).catch(($, e, next) => next(e))
+  on('tool.call', { tool: 'Grep' }, async ($, e, next) => {
+    const deny = await readDenial($, e.path)
+    return deny ? { deny } : next(e)
+  }).catch(($, e, next) => next(e))
 
   // Check after an edit of a backlog file: new issues go back to the model as context, never as a refusal.
-  for (const tool of EDITORS) {
-    on('tool.call', { tool }, async ($, e, next) => {
-      const input = e as { file_path?: string; notebook_path?: string }
-      const path = input.file_path ?? input.notebook_path
-      const project = path ? await backlogProject($, path) : null
-      if (!path || project === null) return next(e)
-      const before = await checkIssues($, project)
-      const result = await next(e)
-      await forgetFiles($)
-      if (result.result === undefined) return result
-      const text = await afterBacklogEdit($, path, before, await checkIssues($, project))
-      return text ? { ...result, context: [...(result.context ?? []), text] } : result
-    }).catch(($, e, next) => next(e))
-  }
+  on('tool.call', { tool: 'Edit' }, ($, e, next) => guardedEdit($, e.file_path, () => next(e))).catch(($, e, next) => next(e))
+  on('tool.call', { tool: 'Write' }, ($, e, next) => guardedEdit($, e.file_path, () => next(e))).catch(($, e, next) => next(e))
+  on('tool.call', { tool: 'NotebookEdit' }, ($, e, next) => guardedEdit($, e.notebook_path, () => next(e))).catch(($, e, next) => next(e))
 
   // Commit reminder: with an active item, a commit that does not cite its ID is pointed out afterwards.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
-    const own = GIT_COMMIT.test((e as { command?: string }).command ?? '') ? await mineOf($) : null
-    if (!own) return next(e)
-    const before = await headOf($, own)
+    const command = e.command ?? ''
+    const own = GIT_COMMIT.test(command) ? await mineOf($) : null
+    const before = own ? await headOf($, own) : null
     const result = await next(e)
-    const text = result.result === undefined ? null : await commitWarning($, own, before)
+    if (RUNS_SCRIPT.test(command)) await forgetFiles($)
+    const text = own && result.result !== undefined ? await commitWarning($, own, before) : null
     return text ? { ...result, context: [...(result.context ?? []), text] } : result
   }).catch(($, e, next) => next(e))
 
@@ -84,9 +77,10 @@ export const register: Register = on => {
     const first = args.split(/\s+/)[0] ?? ''
     const mode = MODES.find(m => m === first.toLowerCase())
     if (mode) {
+      const run = await modeRun($, mode, args.slice(first.length).trim())
+      if ('refused' in run) return { text: run.refused }
       // The host refuses a submit from inside a command.run hook (it would wait on its own turn): it goes out right after the hook returns.
-      const text = `Use the backlog:session skill. Mode: ${mode}. Request: ${args.slice(first.length).trim()}`
-      $.clock.after(0, () => $.prompt.submit({ text, asUser: true }))
+      $.clock.after(0, () => $.prompt.submit({ text: run.text, asUser: true }))
       return { text: `backlog: ${mode}` }
     }
     const { board, strings } = await load($, args)

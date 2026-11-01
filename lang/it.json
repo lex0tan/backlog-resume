@@ -174,6 +174,11 @@
     "guardCheck": "controllo del backlog dopo la modifica di {file}: {n} nuovi problemi: {issues}",
     "guardCheckToast": "Controllo del backlog: {n} nuovi dopo la modifica di {file}",
     "guardCommit": "backlog: il messaggio del commit non cita {ref}. Gli ID degli item vanno nel messaggio: così si ricostruiscono chiusura e storia.",
-    "guardCommitToast": "Commit senza {ref}"
+    "guardCommitToast": "Commit senza {ref}",
+    "workingOn": "Stai lavorando su {ref}",
+    "btnStop": "Smetti di lavorarci",
+    "inProgressElsewhere": "Item su cui altre sessioni stanno lavorando adesso (non proporli e non avviarli): {refs}.",
+    "defaultTypes": "code,content,decisione",
+    "noItemsYet": "Ancora niente da fare. Aggiungi il primo item:"
   }
 }

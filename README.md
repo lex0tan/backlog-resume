@@ -1,6 +1,6 @@
 # backlog
 
-A Claude Code plugin that resumes work from a plain Markdown backlog. It reads your `TODO.md` files, checks them against git and the repository, tells you the **verified** state and **one** next step, and opens a side panel to pick the item to work on. Nothing is stored outside your files.
+A Claude Code plugin that resumes work from a plain Markdown backlog. It reads your `TODO.md` files, checks them against git and the repository, tells you the **verified** state and **one** next step, and opens a side panel to pick the item to work on. The backlog lives only in your files; the plugin keeps nothing else but the state of the sessions (active items, locks, a count of items closed) in its own store.
 
 ```
 ┌ Backlog · whole workspace ─────────────────────────────────┐
@@ -152,6 +152,7 @@ Everything has a default. Put overrides in a `.backlog.json` at the workspace ro
 | `lockMinutes` | How long a silent session keeps its item before it counts as orphaned |
 | `typeOrder` | Order of item types in the panel |
 | `index` | Name of the index file |
+| `workspace` | `true` marks a folder as the workspace root (written by `init --workspace`) |
 
 To add a language, copy `lang/en.json` to `lang/<code>.json` and translate the keywords, messages and panel texts.
 
@@ -159,18 +160,18 @@ To add a language, copy `lang/en.json` to `lang/<code>.json` and translate the k
 
 `/backlog` shows the agenda (items with a `From:` date), then projects → areas → types → items. From an item you can read its detail, see what blocks it and what it unblocks, work on it, or mark it done. **Unblock first** lists the items that hold up most others, **New item** appends one, and a search box finds items by ID or words. **Waiting on you** lists decisions and your own steps.
 
-**Work on it** sends Claude the whole item in one prompt and makes it this session's active item: the status line shows it with its parts and the time spent, and when the model removes it from the file the session closes it and reports the files left uncommitted.
+**Work on it** sends Claude the whole item in one prompt and makes it this session's active item: the status line shows it with its parts and the time spent, and when the model removes it from the file the session closes it and reports the files left uncommitted. **Stop working on it** lets go of the item without closing it, and an item whose file disappears is let go on its own. `/backlog do <ID>` takes the item the same way.
 
 ### Several sessions
 
-Each session keeps its active item in the plugin's store with a heartbeat every minute. An item another live session holds is marked *in progress elsewhere* and cannot be taken. If a session goes silent for `lockMinutes` its item becomes an **orphan**: the next session in the same workspace is told, and the panel offers **Resume** or **Release**. Orphans are never taken automatically.
+Each session keeps its active item in the plugin's store with a heartbeat every minute. An item another live session holds is marked *in progress elsewhere* and cannot be taken, from the panel or with `/backlog do`; the modes also tell the skill which items to leave alone. Items are matched by file, so it does not matter which folder each session started from. If a session goes silent for `lockMinutes` its item becomes an **orphan**: the next session in the same workspace is told, and the panel offers **Resume** or **Release**. Orphans are never taken automatically. A `/clear` may give the session a new ID: the item then shows as an orphan of your own session, and **Resume** takes it back (it is offered while the session holds no item of its own).
 
 ## Guards
 
-While an item is active, three hooks keep the session on track. None of them blocks an edit or a commit.
+Three hooks keep the session on track. None of them blocks an edit or a commit; only the read guard can refuse, and only while an item is active.
 
 - **Read guard.** The prompt already carries the item, so reading other backlog files is refused; only the item's file and its indexes stay open.
-- **Check after an edit.** When Claude edits a backlog file, the plugin runs `check --fast` before and after and reports only the new issues back as context.
+- **Check after an edit.** With or without an active item, when Claude edits a backlog file, the plugin runs `check --fast` before and after and reports only the new issues back as context.
 - **Commit reminder.** A commit that does not cite the active item's ID gets a reminder afterwards.
 
 ## Development

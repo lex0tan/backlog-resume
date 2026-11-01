@@ -46,6 +46,8 @@ The first argument; without one, `resume`.
 | `init` | Sets up a new backlog | the files `init` creates |
 | `split` | Proposes a plan of workstreams, previews it with `--dry-run`, writes it | only after confirmation |
 
+When the request ends with a line naming items other sessions are working on right now ("... do not propose or start them: ..."), never propose, plan or start those items: pick the next one that is not listed, and say so in the report.
+
 ## Steps (audit, resume, plan, do)
 
 1. **Route.** `route "<request>"` (strip the mode word from the arguments and pass what is left; if nothing is left, run `route ""`, never the mode word itself, because aliases match by substring). The `status` decides:

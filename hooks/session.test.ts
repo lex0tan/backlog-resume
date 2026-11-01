@@ -1,73 +1,11 @@
-import { expect, mock, test } from 'claude-code/testing'
+import { expect, test } from 'claude-code/testing'
 import type { TestBody } from 'claude-code/testing'
 
-import { EN } from './fixtures/panel'
+import { FILE, PANE, TURN, ago, entry, setup } from './fixtures/world'
 
 type $T = Parameters<TestBody>[0]
-type OnT = Parameters<TestBody>[1]
 
-const MIN = 60_000
-const ROOT = 'C:/ws'
-const FILE = `${ROOT}/shop/TODO.md`
-
-const item = (id: string, extra: Record<string, unknown> = {}) =>
-  ({ id, project: 'shop', type: 'code', workstream: 'API', text: `text ${id}`, doneWhen: null, parts: [], unmerged: [], when: null, blockedBy: [], unblocks: [], cycle: null, waiting: false, steps: [], stale: null, ...extra })
-const LISTED = {
-  status: 'ok', language: 'en', root: ROOT, workspace: 'ws', focus: null, typeOrder: ['code'], settings: { lockMinutes: 5, staleDays: 30 },
-  projects: [
-    { rel: 'shop', name: 'shop', next: null, due: [], workstreams: [
-      { id: 'API', label: 'Backend API', file: 'shop/TODO.md', area: { id: 'API', name: 'Backend API', subproject: false }, items: [item('API-002'), item('API-003', { waiting: true, steps: ['pick a plan'] })] },
-    ] },
-    { rel: 'docs', name: 'docs', next: null, due: [], workstreams: [
-      { id: 'GUIDE', label: 'Guides', file: 'docs/TODO.md', area: { id: 'GUIDE', name: 'Guides', subproject: false }, items: [{ ...item('GUIDE-001'), project: 'docs', workstream: 'GUIDE' }] },
-    ] },
-  ],
-}
-const GIT = { status: 'ok', projects: [{ project: 'shop', status: 'clean', branch: 'main', commit: { hash: 'abc123' }, dirty: [{ path: 'shop/a.ts' }, { path: 'shop/b.ts' }] }] }
-const PANE = {
-  plugin: 'backlog', component: 'Pane', requestId: 'backlog',
-  props: { title: 'Backlog', isFocused: true, bodyColumns: 70, placement: 'dock', scroll: { offset: 0, bodyRows: 22 }, view: {} },
-} as const
-
-// Two simulated sessions share the store; `who.id` says which one the next call comes from.
-function setup(on: OnT, entries: Record<string, unknown> = {}) {
-  const who = { id: 'A' }
-  const store = new Map<string, unknown>(Object.entries(entries))
-  const seen = { prompts: [] as string[], toasts: [] as string[], statuses: [] as (string | undefined)[], file: '- [ ] [API-002] `[code]` text API-002\n', panes: [] as { id: string }[] }
-  on('store.get', (_, e) => ({ value: store.get(e.key) }))
-  on('store.set', (_, e) => { store.set(e.key, JSON.parse(JSON.stringify(e.value))); return { value: undefined } })
-  on('store.delete', (_, e) => { store.delete(e.key); return { value: undefined } })
-  on('store.keys', () => ({ value: [...store.keys()] }))
-  on('session.id', () => ({ value: who.id }))
-  on('session.cwd', () => ({ value: 'C:\\ws' }))
-  on('command.register', () => ({ value: { command: 'backlog' } }))
-  on('fs.read', (_, e) => {
-    if (/lang[\\/]\w+\.json$/.test(e.path)) return { value: JSON.stringify({ panel: EN }) }
-    if (e.path.replace(/\\/g, '/') === FILE) return { value: seen.file }
-    throw new Error(`ENOENT ${e.path}`)
-  })
-  on('process.run', (_, e) => {
-    const out = e.argv[4] === 'list' ? LISTED : GIT
-    return { value: { exitCode: 0, stderr: '', isStdoutTruncated: false, isStderrTruncated: false, stdout: JSON.stringify(out) } }
-  })
-  on('ui.panes', () => ({ value: seen.panes }))
-  on('ui.open', (_, e) => { seen.panes.push({ id: e.id }); return { value: { isPlaced: true as const } } })
-  on('ui.close', () => ({ value: undefined }))
-  on('ui.toast', (_, e) => { seen.toasts.push(e.text); return { value: undefined } })
-  on('ui.status', (_, e) => { seen.statuses.push(e.text); return { value: undefined } })
-  on('prompt.submit', (_, e) => { seen.prompts.push(e.text); return { text: e.text } })
-  on('session.start', (_, e) => ({ cwd: e.cwd }))
-  on('turn.complete', () => ({ text: '' }))
-  return { who, seen, store, clock: mock.clock(on) }
-}
-
-const TURN = { answer: '', durationMs: 1, isAborted: false, turnId: 't1', reason: 'end_turn' } as never
 const open = ($: $T) => $.command.run({ command: 'backlog', args: '' } as never)
-const entry = (sessionId: string, extra: Record<string, unknown> = {}) => ({
-  id: 'API-002', project: 'shop', file: FILE, text: 'text API-002', language: 'en', startedAt: Date.now() - 20 * MIN, dirtyAtStart: [],
-  sessionId, cwd: 'C:\\ws', heartbeatAt: Date.now(), ...extra,
-})
-const ago = (min: number) => Date.now() - min * MIN
 
 test('an item one session takes is in progress elsewhere for another, which cannot work on it', async ($, on) => {
   const { who, seen, store } = setup(on)
@@ -100,7 +38,7 @@ test('a silent heartbeat turns the entry into an orphan, proposed and never take
   expect((await b.find({ type: 'Button', text: /^Release/ }))?.text).toBeDefined()
   // Proposed, not taken: B holds nothing until it presses Resume.
   expect(store.has('active:B')).toBe(false)
-  await b.press({ key: 'resume-shop:API-002' })
+  await b.press({ key: 'resume-A' })
   expect(store.get('active:B')).toMatchObject({ id: 'API-002', sessionId: 'B' })
   expect(store.has('active:A')).toBe(false)
   expect(seen.prompts[0]).toContain('shop:API-002')
@@ -128,7 +66,7 @@ test('Release deletes the orphan entry without taking the item', async ($, on) =
   who.id = 'B'
   await open($)
   const b = await $.ui.mount({ ...PANE, surface: 'desktop' })
-  await b.press({ key: 'release-shop:API-002' })
+  await b.press({ key: 'release-A' })
   expect(store.size).toBe(0)
   await b.unmount()
 })
