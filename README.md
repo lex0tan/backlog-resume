@@ -3,7 +3,7 @@
 <p align="center">Every new session starts cold: you re-explain what is done, what is blocked and what is next.<br>backlog-resume checks your <code>TODO.md</code> against git and tells Claude where you really are, with one next step.</p>
 
 <p align="center">
-  <img src=".github/panel.gif" alt="The /backlog-resume panel in Claude Code: agenda, projects, a blocked item with its parts, Unblock first, Waiting on you, a new item added and closed, then Work on it with the status line bar filling as Claude ticks the parts" width="900">
+  <img src="https://raw.githubusercontent.com/lex0tan/backlog-resume/media/panel.gif" alt="The /backlog-resume panel in Claude Code: agenda, projects, a blocked item with its parts, Unblock first, Waiting on you, a new item added and closed, then Work on it with the status line bar filling as Claude ticks the parts" width="900">
 </p>
 
 ```
@@ -272,14 +272,20 @@ Writes are safe across sessions too. The script is the only thing that writes ba
 
 ## What it runs, sends and stores
 
-- **Programs it runs.** `node` runs the plugin's own `scripts/backlog.mjs` (reads and writes your backlog files, no network), and `git` runs read-only queries (`log`, `blame`, `status`, `ls-files`, `branch`, `rev-parse`) on the current workspace to date items and check commits. Nothing else is started.
-- **What it sends.** Nothing leaves your machine: no network calls, no telemetry, no account. It reads no credentials or environment secrets.
-- **Prompts it submits.** `/backlog-resume <mode> <request>` and the panel's *Work on it* submit one prompt as if you had typed it: the mode's instructions, the item's text and the names of its backlog files. Nothing else is added to your prompts; the only other text it adds to the session is the check results after a backlog edit and the commit reminder.
-- **What it stores.** Session state (active item, heartbeat, a count of closed items) in the plugin's own store on your machine.
-- **What it reads.** Your backlog files (`TODO.md` and the indexes it links), the plugin's own `lang/*.json`, and the git history of the current workspace. This is the only local data it reads, and none of it is sent anywhere: it goes into the item shown in the panel and, when you press *Work on it*, into the prompt above.
-- **The conversation.** The `turn.complete` hook only checks whether the active item's line is still in its file; it does not read, store or send the conversation text.
-- **Credentials.** None are read. The `key` and `/^[a-z]{2,3}.../` expressions in the code are store keys (`backlog-resume.active`...) and a check that a language tag such as `en` or `it` is a plain code before it becomes a file name; the `git` command line is built from the workspace folder and a fixed list of read-only subcommands, never from user text or environment secrets.
-- **The demo GIF.** `.github/panel.gif` is a screen recording used only by this README. It contains no script, and nothing in the plugin downloads or executes it.
+Nothing leaves your machine: no network calls, no telemetry, no account. The plugin's code that Claude Code loads is `hooks/register.tsx` (with the modules under `hooks/lib/`); every capability it uses is one plain call written out in that file. This is what each one does.
+
+- **Programs it runs (`process.run`).** Only these command lines, each written out in full in `hooks/register.tsx`; any other is refused:
+  - `node <plugin>/scripts/backlog.mjs --cwd <workspace> list | git | files | check | add | done ...`: the plugin's own CLI, standard library only, no network. It reads your backlog files and the git history to build the panel (`list`, `git`, `files`), checks a backlog file after Claude edits it (`check`), and writes an item you add or close from the panel (`add`, `done`). The arguments after the subcommand are the item ID, type and text you typed in the panel, or the project name.
+  - `git rev-parse HEAD` and `git log -1 --format=%B`, run in the active item's repository: read-only, to see whether a commit just made cites the active item (the commit reminder below). The CLI itself also runs read-only `git` queries (`log`, `blame`, `status`, `ls-files`, `branch`, `rev-parse`) to date items.
+  Nothing these programs print is sent anywhere: their output is shown in the panel and the status line.
+- **Files it reads (`fs.read`, `fs.exists`).** The active item's backlog file (to see whether the item is still there and how many parts are ticked) and the plugin's own `lang/*.json`. Through the CLI it also reads your backlog files (`TODO.md` and the indexes it links) and the git history of the workspace. Nothing that is read is sent out of your machine.
+- **Prompts it submits (`prompt.submit`).** Only when you ask: `/backlog-resume <mode> <request>` and the panel's *Work on it* submit one prompt as if you had typed it. With a mode it says which skill and mode to use, your request, and the IDs of items other sessions on this machine are working on; *Work on it* carries the item's text from your backlog and the names of its backlog files. That prompt goes to Claude like any prompt you type; nothing else is added to your prompts. The only other text the plugin adds to the session is the check results after a backlog edit and the commit reminder.
+- **The `/backlog-resume` command (`command.register`, hook on `command.run`).** The plugin registers `/backlog-resume` and handles only that command: with no mode it opens the panel; with a mode (`audit`, `resume`, `plan`, `do`, `adopt`, `init`, `split`) it builds the prompt above and submits it. The hook is bound to `command: 'backlog-resume'`, so it never sees or changes other commands.
+- **The conversation (hook on `turn.complete`).** At the end of each turn the hook only re-reads the active item's backlog file to see whether its line is still there, and frees the item if Claude removed it. It does not read, store or send the conversation text.
+- **Tool calls (hooks on `tool.call`).** Read and Grep: the read guard below. Edit, Write and NotebookEdit: the check after a backlog edit. Bash: the commit reminder. They look only at the file path or the command line of the call.
+- **What it stores (`store`, `state`).** Session state (active item, heartbeat, a count of closed items) in the plugin's own store on your machine.
+- **Credentials.** None are read: no environment variables, tokens or keys. The `key` and `/^[a-z]{2,3}.../` expressions in the code are store keys (`backlog-resume.active`...) and a check that a language tag such as `en` or `it` is a plain code before it becomes a file name.
+- **Images.** The plugin ships one image, `.claude-plugin/icon.png`, the icon of the directory listing. The demo GIF of this README is on the repository's `media` branch, not in the plugin. Nothing in the plugin downloads or executes code.
 
 ## Guards
 
@@ -299,7 +305,7 @@ claude plugin validate .
 
 CI runs the script tests on Windows, macOS and Linux with Node 20 and 22, and the panel tests and validation with Claude Code.
 
-Layout: `scripts/` (the CLI, standard library only), `skills/session/` (instructions for Claude), `hooks/` (panel, status line, session state, guards), `lang/` (keywords and texts per language), `examples/demo/`, `.github/` (CI and the demo GIF).
+Layout: `scripts/` (the CLI, standard library only), `skills/session/` (instructions for Claude), `hooks/` (panel, status line, session state, guards), `lang/` (keywords and texts per language), `examples/demo/`, `.github/` (CI). The demo GIF lives on the `media` branch, outside the plugin.
 
 ## License
 
