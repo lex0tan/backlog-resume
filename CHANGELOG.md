@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versions follow the release date (`YEAR.MONTH.DAY`, tag `vYEAR.MONTH.DAY`), still valid [Semantic Versioning](https://semver.org/spec/v2.0.0.html) strings.
 
+## [Unreleased]
+
+### Changed
+- Every program the panel runs is a fixed command line in `hooks/register.tsx` (the plugin's CLI per subcommand, `git rev-parse HEAD` and `git log -1 --format=%B` in the item's repository); any other command is refused.
+- The README says, call by call, what the plugin runs, reads, submits and stores. The demo GIF moved to the `media` branch: the plugin ships no image but its listing icon.
+
 ## [2026.11.1] - 2026-11-01
 
 ### Fixed
