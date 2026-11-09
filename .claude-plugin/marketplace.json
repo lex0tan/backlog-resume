@@ -1,6 +1,7 @@
 {
   "name": "backlog-resume",
   "owner": { "name": "backlog-resume contributors" },
+  "description": "Marketplace of the backlog-resume plugin for Claude Code.",
   "plugins": [
     {
       "name": "backlog-resume",
