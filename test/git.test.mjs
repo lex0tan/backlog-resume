@@ -5,13 +5,13 @@ import { appendFileSync, mkdirSync, realpathSync, symlinkSync, unlinkSync, write
 import { basename, dirname, join } from 'node:path'
 import { commitsFor, git, gitRoot, gitState, lastModified, lineAges, unmerged } from '../scripts/lib/git.mjs'
 import { loadWorkspace } from '../scripts/lib/workspace.mjs'
+import { withEnv } from './helpers/env.mjs'
 import { englishShop, flat, workspace } from './helpers/fixture.mjs'
 
 const run = (root, env, ...args) =>
-  execFileSync('git', ['-C', root, '-c', 'commit.gpgsign=false', '-c', 'user.email=t@example.com', '-c', 'user.name=T', ...args], {
-    stdio: 'ignore',
-    env: { ...process.env, ...env },
-  })
+  withEnv(env, () =>
+    execFileSync('git', ['-C', root, '-c', 'commit.gpgsign=false', '-c', 'user.email=t@example.com', '-c', 'user.name=T', ...args], { stdio: 'ignore' }),
+  )
 const commit = (root, message, env = {}) => run(root, env, 'commit', '-q', '--allow-empty', '-m', message)
 const at = (iso) => ({ GIT_AUTHOR_DATE: iso, GIT_COMMITTER_DATE: iso })
 const today = () => new Date().toISOString().slice(0, 10)

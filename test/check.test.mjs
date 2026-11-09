@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { InvalidInputError } from '../scripts/lib/errors.mjs'
 import { check } from '../scripts/lib/commands/check.mjs'
 import { loadWorkspace } from '../scripts/lib/workspace.mjs'
+import { withEnv } from './helpers/env.mjs'
 import { englishShop, flat, italianShop, workspace } from './helpers/fixture.mjs'
 
 const ws = (t, spec, options) => loadWorkspace(workspace(t, spec, options))
@@ -144,8 +145,8 @@ test('project filter keeps its own issues and the duplicates and cycles that inv
 
 test('stale-item: open longer than staleDays, with the proposal; fast skips it', (t) => {
   const root = workspace(t, { 'TODO.md': list(item('OLD-001', 'Done when: ok'), item('OLD-002', 'Done when: ok', 'From: 2999-01-01')) })
-  const env = { ...process.env, GIT_AUTHOR_DATE: '2026-01-01T00:00:00Z', GIT_COMMITTER_DATE: '2026-01-01T00:00:00Z' }
-  const g = (...args) => execFileSync('git', ['-C', root, '-c', 'user.email=t@example.com', '-c', 'user.name=T', '-c', 'commit.gpgsign=false', ...args], { stdio: 'ignore', env })
+  const dates = { GIT_AUTHOR_DATE: '2026-01-01T00:00:00Z', GIT_COMMITTER_DATE: '2026-01-01T00:00:00Z' }
+  const g = (...args) => withEnv(dates, () => execFileSync('git', ['-C', root, '-c', 'user.email=t@example.com', '-c', 'user.name=T', '-c', 'commit.gpgsign=false', ...args], { stdio: 'ignore' }))
   g('init', '-q', '-b', 'main')
   g('add', '-A')
   g('commit', '-q', '-m', 'old')
@@ -166,7 +167,7 @@ test('fast check works with an empty PATH (no git): no stale-item, no git-only d
     import { loadWorkspace } from ${here('../scripts/lib/workspace.mjs')}
     process.stdout.write(JSON.stringify(check(loadWorkspace(process.argv[1]), { fast: true })))
   `
-  const out = spawnSync(process.execPath, ['--input-type=module', '-e', script, root], { encoding: 'utf8', env: { ...process.env, PATH: '', Path: '' } })
+  const out = withEnv({ PATH: '', Path: '' }, () => spawnSync(process.execPath, ['--input-type=module', '-e', script, root], { encoding: 'utf8' }))
   assert.equal(out.status, 0, out.stderr)
   const r = JSON.parse(out.stdout)
   assert.ok(!r.issues.some((i) => i.code === 'stale-item' || i.code === 'missing-ref'))
