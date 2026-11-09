@@ -80,7 +80,7 @@ export async function afterBacklogEdit($: EngineInterface, path: string, before:
 // Boundary: no git, or no commit yet, answers null.
 async function gitOut($: EngineInterface, cwd: string, args: string[]): Promise<string | null> {
   try {
-    const run = await $.process.run(['git', '-C', cwd, ...args], { timeoutMs: 15_000 })
+    const run = await $.process.run(['git', ...args], { cwd, timeoutMs: 15_000 })
     return run.exitCode === 0 ? run.stdout.trim() : null
   } catch {
     return null

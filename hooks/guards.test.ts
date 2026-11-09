@@ -98,6 +98,8 @@ test('a commit that does not cite the active item gets a reminder', async ($, on
   expect(r.deny).toBeUndefined()
   expect(r.context![0]).toContain('does not cite shop:API-002')
   expect(seen.toasts).toEqual(['Commit without shop:API-002'])
+  // The git queries are the fixed command lines written in register.tsx: the repository folder goes in as cwd, not as an argument.
+  expect(seen.runs.filter(a => a[0] === 'git').map(a => a.join(' '))).toEqual(['git rev-parse HEAD', 'git rev-parse HEAD', 'git log -1 --format=%B'])
 })
 
 test('a commit that cites the active item stays quiet', async ($, on) => {

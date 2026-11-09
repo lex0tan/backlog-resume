@@ -14,6 +14,7 @@ const MODES = ['audit', 'resume', 'plan', 'do', 'adopt', 'init', 'split']
 // The modules under hooks/lib, hooks/pane.tsx and hooks/status.tsx never see the hook context itself: they get this adapter,
 // whose every member is one plain call on it, so that every capability the plugin uses is written out here.
 function ioOf($: EngineInterface): EngineInterface {
+  const script = `${$.plugin.root}/scripts/backlog.mjs`
   const io = {
     clock: {
       after: (ms: number, fn: () => void) => $.clock.after(ms, fn),
@@ -25,7 +26,37 @@ function ioOf($: EngineInterface): EngineInterface {
     },
     plugin: { root: $.plugin.root },
     process: {
-      run: (argv: readonly string[], init?: { timeoutMs?: number }) => $.process.run(argv, init),
+      // Every program the plugin starts is written out here: its own CLI (one call per subcommand) and two read-only git
+      // queries on the item's repository. Anything else is refused.
+      run: (argv: readonly string[], init?: { cwd?: string; timeoutMs?: number }) => {
+        const [program, ...rest] = argv
+        if (program === 'node' && rest[0] === script && rest[1] === '--cwd' && rest[2] !== undefined) {
+          const [, , cwd, command, ...args] = rest
+          switch (command) {
+          case 'list':
+            return $.process.run(['node', script, '--cwd', cwd, 'list', ...args], init)
+          case 'git':
+            return $.process.run(['node', script, '--cwd', cwd, 'git', ...args], init)
+          case 'files':
+            return $.process.run(['node', script, '--cwd', cwd, 'files', ...args], init)
+          case 'check':
+            return $.process.run(['node', script, '--cwd', cwd, 'check', ...args], init)
+          case 'add':
+            return $.process.run(['node', script, '--cwd', cwd, 'add', ...args], init)
+          case 'done':
+            return $.process.run(['node', script, '--cwd', cwd, 'done', ...args], init)
+          }
+        }
+        if (program === 'git') {
+          switch (rest.join(' ')) {
+          case 'rev-parse HEAD':
+            return $.process.run(['git', 'rev-parse', 'HEAD'], init)
+          case 'log -1 --format=%B':
+            return $.process.run(['git', 'log', '-1', '--format=%B'], init)
+          }
+        }
+        throw new Error(`backlog: command not allowed: ${argv.join(' ')}`)
+      },
     },
     prompt: {
       submit: (request: { text: string; asUser?: boolean }) => $.prompt.submit(request),
